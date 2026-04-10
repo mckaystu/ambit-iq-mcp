@@ -1,0 +1,9 @@
+{
+  "id": "baseline.global",
+  "title": "Baseline Global Engineering",
+  "industry": "all",
+  "geo": "global",
+  "includeDomains": ["quality", "ux"],
+  "failOn": "high",
+  "catalogs": ["quality-baseline", "corporate-ux"]
+}

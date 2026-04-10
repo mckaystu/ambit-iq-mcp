@@ -1,0 +1,17 @@
+{
+  "catalog": "regulatory-healthcare-us",
+  "version": "0.1.0",
+  "frameworks": ["HIPAA"],
+  "rules": [
+    {
+      "id": "HIPAA-001",
+      "domain": "regulatory",
+      "title": "Potential PHI in analytics/third-party tracking calls",
+      "severity": "critical",
+      "appliesTo": ["healthcare", "us"],
+      "rationale": "Sending PHI to non-authorized processors can violate HIPAA safeguards.",
+      "remediation": "Remove PHI from telemetry payloads and gate tracking paths.",
+      "pattern": "(analytics|segment|mixpanel|amplitude|track)\\([^)]*(diagnosis|patient|medical|mrn|phi)[^)]*\\)"
+    }
+  ]
+}

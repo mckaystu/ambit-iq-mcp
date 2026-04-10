@@ -1,0 +1,9 @@
+{
+  "id": "healthcare.us",
+  "title": "Healthcare US",
+  "industry": "healthcare",
+  "geo": "us",
+  "includeDomains": ["quality", "ux", "regulatory"],
+  "failOn": "medium",
+  "catalogs": ["quality-baseline", "corporate-ux", "regulatory-healthcare-us"]
+}

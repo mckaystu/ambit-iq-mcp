@@ -15,6 +15,9 @@ downloads/
 eggs/
 .eggs/
 lib/
+# Ambit.IQ MCP keeps server code under ambit-iq-mcp/lib/ (distinct from Python packaging lib/)
+!ambit-iq-mcp/lib/
+!ambit-iq-mcp/lib/**
 lib64/
 parts/
 sdist/

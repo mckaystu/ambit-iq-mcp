@@ -1,0 +1,26 @@
+{
+  "catalog": "quality-baseline",
+  "version": "0.1.0",
+  "rules": [
+    {
+      "id": "QUAL-001",
+      "domain": "quality",
+      "title": "No hardcoded credentials",
+      "severity": "critical",
+      "appliesTo": ["all"],
+      "rationale": "Embedded secrets create immediate compromise risk.",
+      "remediation": "Move credentials to env vars or a secret manager.",
+      "pattern": "(password|secret|api_key|token|auth|credentials)\\s*[:=]\\s*['\\\"][^'\\\"]+['\\\"]"
+    },
+    {
+      "id": "QUAL-002",
+      "domain": "quality",
+      "title": "Network calls include error handling",
+      "severity": "high",
+      "appliesTo": ["all"],
+      "rationale": "Unhandled network failures reduce reliability.",
+      "remediation": "Wrap async I/O in try/catch or explicit .catch handlers.",
+      "test": "network-call-without-error-handling"
+    }
+  ]
+}

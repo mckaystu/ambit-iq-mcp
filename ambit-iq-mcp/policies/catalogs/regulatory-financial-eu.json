@@ -1,0 +1,27 @@
+{
+  "catalog": "regulatory-financial-eu",
+  "version": "0.1.0",
+  "frameworks": ["GDPR", "DORA"],
+  "rules": [
+    {
+      "id": "GDPR-001",
+      "domain": "regulatory",
+      "title": "Avoid plaintext PII fields in logs",
+      "severity": "high",
+      "appliesTo": ["eu", "financial-services"],
+      "rationale": "PII logging can violate minimization and confidentiality controls.",
+      "remediation": "Mask/redact personal data before logging.",
+      "pattern": "console\\.(log|info|warn|error)\\([^)]*(email|phone|ssn|dob|address|passport)[^)]*\\)"
+    },
+    {
+      "id": "DORA-001",
+      "domain": "regulatory",
+      "title": "Critical external calls should include timeout hints",
+      "severity": "medium",
+      "appliesTo": ["eu", "financial-services"],
+      "rationale": "Resilience controls benefit from explicit timeout boundaries.",
+      "remediation": "Set timeout/abort options for outbound network calls.",
+      "test": "network-call-without-timeout"
+    }
+  ]
+}

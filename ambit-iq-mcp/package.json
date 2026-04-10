@@ -1,0 +1,22 @@
+{
+  "name": "ambit-iq-mcp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "smoke:mcp": "node scripts/mcp-ci-smoke.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "zod": "^4.3.6"
+  }
+}

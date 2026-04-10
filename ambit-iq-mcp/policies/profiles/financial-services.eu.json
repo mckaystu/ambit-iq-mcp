@@ -1,0 +1,9 @@
+{
+  "id": "financial-services.eu",
+  "title": "Financial Services EU",
+  "industry": "financial-services",
+  "geo": "eu",
+  "includeDomains": ["quality", "ux", "regulatory"],
+  "failOn": "medium",
+  "catalogs": ["quality-baseline", "corporate-ux", "regulatory-financial-eu"]
+}

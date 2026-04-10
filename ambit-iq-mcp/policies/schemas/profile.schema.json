@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ambitiq.local/schemas/profile.schema.json",
+  "title": "Ambit.IQ Policy Profile",
+  "type": "object",
+  "required": ["id", "title", "industry", "geo", "includeDomains", "failOn"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+\\.[a-z0-9-]+$" },
+    "title": { "type": "string" },
+    "industry": { "type": "string" },
+    "geo": { "type": "string" },
+    "includeDomains": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["quality", "ux", "regulatory", "security"] },
+      "minItems": 1
+    },
+    "failOn": { "type": "string", "enum": ["low", "medium", "high", "critical"] }
+  },
+  "additionalProperties": false
+}

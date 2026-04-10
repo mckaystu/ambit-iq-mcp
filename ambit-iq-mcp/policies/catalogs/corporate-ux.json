@@ -1,0 +1,16 @@
+{
+  "catalog": "corporate-ux",
+  "version": "0.1.0",
+  "rules": [
+    {
+      "id": "UX-001",
+      "domain": "ux",
+      "title": "Interactive controls expose accessible names",
+      "severity": "high",
+      "appliesTo": ["all"],
+      "rationale": "Controls without labels break keyboard/screen reader usage.",
+      "remediation": "Add aria-label/aria-labelledby or a linked <label>.",
+      "pattern": "<(button|input|select)(?![^>]*(aria-label|aria-labelledby))[^>]*>"
+    }
+  ]
+}

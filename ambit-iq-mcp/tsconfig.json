@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "#pf": ["./lib/policyFramework.js"],
+      "#cert": ["./lib/certificateHtml.js"],
+      "#audit": ["./lib/auditTrail.js"]
+    },
+    "baseUrl": "."
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -1,3 +1,10 @@
+import {
+  hasNetworkCallWithoutTimeoutAst,
+  hasUnprotectedNetworkCallAst,
+  legacyNetworkCallWithoutTimeout,
+  legacyUnprotectedNetworkCall,
+} from "./networkCallRules.js";
+
 const RULE_CATALOG = [
   {
     id: "QUAL-001",
@@ -17,10 +24,6 @@ const RULE_CATALOG = [
     appliesTo: ["all"],
     rationale: "Unhandled network failures reduce reliability.",
     remediation: "Wrap async I/O in try/catch or explicit .catch handlers.",
-    test: (code) =>
-      (code.includes("fetch(") || code.includes("axios.")) &&
-      !code.includes("try") &&
-      !code.includes(".catch("),
   },
   {
     id: "UX-001",
@@ -50,9 +53,6 @@ const RULE_CATALOG = [
     appliesTo: ["eu", "financial-services"],
     rationale: "Resilience controls benefit from explicit timeout boundaries.",
     remediation: "Set timeout/abort options for outbound network calls.",
-    test: (code) =>
-      (code.includes("fetch(") || code.includes("axios.")) &&
-      !/timeout|AbortController|signal/.test(code),
   },
   {
     id: "HIPAA-001",
@@ -110,6 +110,14 @@ function ruleApplies(rule, profile) {
 }
 
 function evaluateRule(rule, code) {
+  if (rule.id === "QUAL-002") {
+    const ast = hasUnprotectedNetworkCallAst(code);
+    return ast === null ? legacyUnprotectedNetworkCall(code) : ast;
+  }
+  if (rule.id === "DORA-001") {
+    const ast = hasNetworkCallWithoutTimeoutAst(code);
+    return ast === null ? legacyNetworkCallWithoutTimeout(code) : ast;
+  }
   if (rule.pattern) return rule.pattern.test(code);
   if (typeof rule.test === "function") return Boolean(rule.test(code));
   return false;

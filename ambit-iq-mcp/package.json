@@ -2,11 +2,20 @@
   "name": "ambit-iq-mcp",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server.js",
+  "imports": {
+    "#pf": "./lib/policyFramework.js",
+    "#cert": "./lib/certificateHtml.js",
+    "#audit": "./lib/auditTrail.js"
+  },
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "smoke:mcp": "node scripts/mcp-ci-smoke.mjs"
+    "build": "prisma generate && tsc && node scripts/ensure-public-output.mjs",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
+    "test": "node --test lib/networkCallRules.test.js",
+    "postinstall": "prisma generate",
+    "smoke:mcp": "node scripts/mcp-ci-smoke.mjs",
+    "db:migrate:sql": "echo \"Apply migrations/001_ambit_decision_logs.sql to your Neon DB\""
   },
   "engines": {
     "node": ">=20"
@@ -16,7 +25,16 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@babel/parser": "^7.29.2",
+    "@babel/traverse": "^7.29.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "@prisma/client": "^6.19.0",
     "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "prisma": "^6.19.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
   }
 }

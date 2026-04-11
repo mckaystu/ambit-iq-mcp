@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// OPA / GRC decision persistence (Phase 2)
+model AmbitDecisionLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  traceId       String   @map("trace_id") @db.Uuid
+  timestamp     DateTime @default(now()) @map("timestamp") @db.Timestamptz(6)
+  actorId       String   @map("actor_id")
+  intentPrompt  String   @map("intent_prompt")
+  proposedCode  String   @map("proposed_code")
+  decision      Boolean
+  violations    Json     @default("[]") @db.JsonB
+  rawOpaPayload Json     @map("raw_opa_payload") @default("{}") @db.JsonB
+  metadata      Json     @default("{}") @db.JsonB
+
+  /// Previous row fingerprint (CHAIN_GENESIS for first row); equals prior row’s log_hash.
+  previousHash String? @map("previous_hash")
+  /// SHA-256 (hex) over canonical row fields + previous_hash.
+  logHash     String? @map("log_hash")
+  /// RSA-SHA256 signature (base64) over log_hash hex.
+  signature   String?
+
+  @@index([timestamp(sort: Desc)], map: "idx_ambit_decision_logs_timestamp")
+  @@index([actorId], map: "idx_ambit_decision_logs_actor")
+  @@map("ambit_decision_logs")
+}

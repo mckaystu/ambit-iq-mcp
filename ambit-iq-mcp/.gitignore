@@ -1,4 +1,11 @@
 .DS_Store
 node_modules/
 .ambit/logs/
+.ambit/grc-fallback/
+dist/
 reports/*.html
+.env
+.env.*
+!.env.example
+*.pem
+.vercel

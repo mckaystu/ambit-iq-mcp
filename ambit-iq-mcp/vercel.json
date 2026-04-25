@@ -5,7 +5,8 @@
   "outputDirectory": "public",
   "functions": {
     "api/mcp.js": {
-      "maxDuration": 300
+      "maxDuration": 300,
+      "includeFiles": "lib/**"
     }
   },
   "rewrites": [{ "source": "/mcp", "destination": "/api/mcp" }]

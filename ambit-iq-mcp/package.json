@@ -1,21 +1,23 @@
 {
-  "name": "ambit-iq-mcp",
+  "name": "agent-gate-mcp",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/server.js",
   "imports": {
     "#pf": "./lib/policyFramework.js",
     "#cert": "./lib/certificateHtml.js",
     "#audit": "./lib/auditTrail.js"
   },
   "scripts": {
-    "build": "prisma generate && tsc && node scripts/ensure-public-output.mjs",
-    "start": "node dist/server.js",
-    "dev": "tsx src/server.ts",
+    "build": "prisma generate && rm -rf dist && tsc && node scripts/ensure-public-output.mjs",
+    "start": "node dist/stdio-mcp.js",
+    "dev": "tsx src/stdio-mcp.ts",
     "test": "node --test lib/networkCallRules.test.js",
     "postinstall": "prisma generate",
     "smoke:mcp": "node scripts/mcp-ci-smoke.mjs",
-    "db:migrate:sql": "echo \"Apply migrations/001_ambit_decision_logs.sql to your Neon DB\""
+    "db:migrate:sql": "echo \"Apply migrations/001_ambit_decision_logs.sql to your Neon DB\"",
+    "db:seed:rules-library": "node scripts/seed-rules-library.mjs",
+    "dashboard:dev": "npm --prefix dashboard run dev",
+    "dashboard:build": "npm --prefix dashboard run build"
   },
   "engines": {
     "node": ">=20"
@@ -28,7 +30,9 @@
     "@babel/parser": "^7.29.2",
     "@babel/traverse": "^7.29.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "@pinecone-database/pinecone": "^5.1.2",
     "@prisma/client": "^6.19.0",
+    "@vercel/blob": "^2.3.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {

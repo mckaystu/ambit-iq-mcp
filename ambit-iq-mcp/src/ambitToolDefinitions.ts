@@ -1,7 +1,7 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
 /**
- * MCP tool list for Ambit.IQ (kept separate from dispatch logic for readability).
+ * MCP tool list for agent.gate (kept separate from dispatch logic for readability).
  */
 export const AMBIT_MCP_TOOLS: Tool[] = [
   {
@@ -31,7 +31,7 @@ export const AMBIT_MCP_TOOLS: Tool[] = [
         certificateOutputPath: {
           type: "string",
           description:
-            "Optional file path for HTML output. Defaults to reports/ambit-iq-certificate-<profile>.html",
+            "Optional file path for HTML output. Defaults to reports/agent-gate-certificate-<profile>.html",
         },
         logAuditTrail: {
           type: "boolean",
@@ -51,6 +51,23 @@ export const AMBIT_MCP_TOOLS: Tool[] = [
           type: "string",
           description: "Optional markdown summary style for traceability logs: brief | detailed",
         },
+        tenantId: {
+          type: "string",
+          description: "Optional tenant UUID for tenant-specific rules in rules_library.",
+        },
+        industryId: {
+          type: "string",
+          description: "Optional industry override (e.g. Finance, Healthcare) for rules_library filters.",
+        },
+        complianceTags: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional opt-in compliance tags (SOX, SOC2, GDPR, etc).",
+        },
+        domainId: {
+          type: "string",
+          description: "Optional domain filter (Security, Frontend, Database, etc).",
+        },
       },
       required: ["code"],
     },
@@ -65,8 +82,35 @@ export const AMBIT_MCP_TOOLS: Tool[] = [
     description: "List active rules for a specific policy profile.",
     inputSchema: {
       type: "object",
-      properties: { profileId: { type: "string" } },
+      properties: {
+        profileId: { type: "string" },
+        tenantId: { type: "string" },
+        industryId: { type: "string" },
+        complianceTags: { type: "array", items: { type: "string" } },
+        domainId: { type: "string" },
+      },
     },
+  },
+  {
+    name: "refresh_rules_library",
+    description:
+      "Admin: force-refresh the in-memory rules cache from Neon/Postgres rules_library. Falls back to embedded rules if DB is unavailable.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        force: {
+          type: "boolean",
+          description:
+            "When true (default), bypass refresh interval and reload rules immediately from DB.",
+        },
+      },
+    },
+  },
+  {
+    name: "get_rules_library_status",
+    description:
+      "Admin: inspect current rules source/cache health (database vs embedded, last refresh, cache age, errors).",
+    inputSchema: { type: "object", properties: {} },
   },
   {
     name: "log_audit_trail",
@@ -87,7 +131,7 @@ export const AMBIT_MCP_TOOLS: Tool[] = [
   {
     name: "log_vibe_transaction",
     description:
-      "Phase 2 GRC: report agent thought process and proposed code. Evaluates policy (OPA REST if OPA_URL set, else Ambit bridge), then persists a tamper-evident decision log (SHA-256 chain + RSA-SHA256 signature) when DATABASE_URL is set — requires AMBIT_SIGNING_KEY. The tool waits for the write to finish (required on serverless). Without DATABASE_URL, writes JSON fallback (.ambit/grc-fallback locally, /tmp/ambit-iq-grc-fallback on Vercel). Each call also writes an HTML scan certificate and traceability logs when AuditStore is available; set metadata.project_id to also write a Bill of Intent markdown file from Postgres.",
+      "Phase 2 GRC: report agent thought process and proposed code. Evaluates policy (OPA REST if OPA_URL set, else agent.gate bridge), then persists a tamper-evident decision log (SHA-256 chain + RSA-SHA256 signature) when DATABASE_URL is set — requires AMBIT_SIGNING_KEY. The tool waits for the write to finish (required on serverless). Without DATABASE_URL, writes JSON fallback (.ambit/grc-fallback locally, /tmp/agent-gate-grc-fallback on Vercel). Each call also writes an HTML scan certificate and traceability logs when AuditStore is available; set metadata.project_id to also write a Bill of Intent markdown file from Postgres.",
     inputSchema: {
       type: "object",
       properties: {
@@ -97,13 +141,21 @@ export const AMBIT_MCP_TOOLS: Tool[] = [
         proposed_code: { type: "string", description: "Generated or proposed source code." },
         profile_id: {
           type: "string",
-          description: "Policy profile for Ambit bridge when OPA is not used.",
+          description: "Policy profile for agent.gate bridge when OPA is not used.",
         },
         metadata: {
           type: "object",
           description:
             "model_version, temperature, git_branch, project_id, maturity labels (AODA, security), etc.",
         },
+        tenant_id: { type: "string", description: "Optional tenant UUID for rules_library filtering." },
+        industry_id: { type: "string", description: "Optional industry for rules_library filtering." },
+        compliance_tags: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional opt-in compliance tags for rules_library filtering.",
+        },
+        domain_id: { type: "string", description: "Optional domain filter for rules_library." },
       },
       required: ["actor_id", "intent_prompt", "proposed_code"],
     },
@@ -143,6 +195,38 @@ export const AMBIT_MCP_TOOLS: Tool[] = [
       properties: {
         limit: { type: "number", description: "Rows to scan (1–500), default 100." },
       },
+    },
+  },
+  {
+    name: "query_governance_standards",
+    description:
+      "Semantic search over ingested governance standards in Pinecone (384-d MiniLM-compatible vectors). Embeddings use the Hugging Face Inference API (HUGGINGFACE_API_TOKEN) so the serverless bundle stays small. Returns top-3 text+source snippets. Requires PINECONE_API_KEY; optional PINECONE_INDEX_NAME (default agent-gate-standards), HF_EMBEDDING_MODEL_ID (default sentence-transformers/all-MiniLM-L6-v2). Logs to traceability when AuditStore is enabled.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Natural-language question or topic to match against stored standards.",
+        },
+        category: {
+          type: "string",
+          description: "Optional Pinecone metadata filter: exact match on the category field.",
+        },
+        logAuditTrail: {
+          type: "boolean",
+          description:
+            "When true (default when AuditStore is enabled), persist a traceability record including query, filter, and match summaries.",
+        },
+        agentReasoning: {
+          type: "string",
+          description: "Optional agent reasoning line for the audit trail (defaults to a short search summary).",
+        },
+        metadata: {
+          type: "object",
+          description: "Optional metadata for traceability (model_version, git_branch, project_id, etc.).",
+        },
+      },
+      required: ["query"],
     },
   },
 ];

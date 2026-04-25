@@ -1,15 +1,15 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { buildAuditCertificateHtml } from "#cert";
-import type { AuditStore } from "#audit";
-import { runPolicyAudit, summarizeAmbitResults } from "#pf";
+import type { AuditStore } from "../lib/auditTrail.js";
+import { buildAuditCertificateHtml } from "../lib/certificateHtml.js";
+import { runPolicyAudit, summarizeAmbitResults } from "../lib/policyFramework.js";
 import { generateAuditReportMarkdown } from "./services/audit.service.js";
 
 export type PolicyAuditResult = ReturnType<typeof runPolicyAudit>;
 
 export function reportsDirectory(): string {
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    return "/tmp/ambit-iq-reports";
+    return "/tmp/agent-gate-reports";
   }
   return path.join(process.cwd(), "reports");
 }
@@ -30,6 +30,7 @@ export interface SessionArtifactPaths {
   traceabilityJsonPath: string | null;
   traceabilityMdPath: string | null;
   boiMarkdownPath: string | null;
+  reportMarkdownPath: string | null;
   warnings: string[];
 }
 
@@ -39,9 +40,10 @@ export function formatArtifactSuffix(w: SessionArtifactPaths): string {
   if (w.traceabilityJsonPath) lines.push(`Traceability JSON: ${w.traceabilityJsonPath}`);
   if (w.traceabilityMdPath) lines.push(`Traceability markdown: ${w.traceabilityMdPath}`);
   if (w.boiMarkdownPath) lines.push(`Bill of Intent report (markdown file): ${w.boiMarkdownPath}`);
+  if (w.reportMarkdownPath) lines.push(`Stable report markdown: ${w.reportMarkdownPath}`);
   for (const x of w.warnings) lines.push(`Note: ${x}`);
   if (!lines.length) return "";
-  return `\n\n---\nAmbit.IQ session artifacts\n${lines.map((l) => `- ${l}`).join("\n")}`;
+  return `\n\n---\nagent.gate session artifacts\n${lines.map((l) => `- ${l}`).join("\n")}`;
 }
 
 /**
@@ -62,12 +64,15 @@ export async function emitMcpSessionArtifacts(params: {
   certificateOutputPath?: string | null;
   projectIdForBoI?: string | null;
   boiHours?: number;
+  /** Merged into traceability `ambit_results` alongside policy summary (e.g. vector search hits). */
+  ambitResultsAugment?: Record<string, unknown>;
 }): Promise<SessionArtifactPaths> {
   const warnings: string[] = [];
   let certificateHtmlPath: string | null = null;
   let traceabilityJsonPath: string | null = null;
   let traceabilityMdPath: string | null = null;
   let boiMarkdownPath: string | null = null;
+  let reportMarkdownPath: string | null = null;
 
   const { auditResult } = params;
   const safeProfile = safeTag(String(auditResult.profile?.id || "profile"));
@@ -79,11 +84,11 @@ export async function emitMcpSessionArtifacts(params: {
       result: auditResult,
       appName: params.appName,
       targetEnvironment: params.targetEnvironment,
-      scannerName: "Ambit.IQ",
+      scannerName: "agent.gate",
     });
     const fallbackPath = path.join(
       reportsDirectory(),
-      `ambit-iq-certificate-${toolTag}-${stamp}-${safeProfile}.html`,
+      `agent-gate-certificate-${toolTag}-${stamp}-${safeProfile}.html`,
     );
     const outPath = params.certificateOutputPath
       ? path.resolve(String(params.certificateOutputPath))
@@ -98,7 +103,12 @@ export async function emitMcpSessionArtifacts(params: {
   }
 
   if (params.includeTraceability && params.auditStore) {
-    const ambitResults = summarizeAmbitResults(auditResult);
+    const ambitResults = {
+      ...summarizeAmbitResults(auditResult),
+      ...(params.ambitResultsAugment && Object.keys(params.ambitResultsAugment).length
+        ? params.ambitResultsAugment
+        : {}),
+    };
     const metadata = {
       ...params.metadata,
       mcp_tool: params.toolName,
@@ -132,12 +142,15 @@ export async function emitMcpSessionArtifacts(params: {
     if (rep.ok) {
       const out = path.join(
         reportsDirectory(),
-        `ambit-iq-boi-${safeTag(projectId, 48)}-${stamp}.md`,
+        `agent-gate-boi-${safeTag(projectId, 48)}-${stamp}.md`,
       );
+      const stableReport = path.join(reportsDirectory(), "report.md");
       try {
         await mkdir(path.dirname(out), { recursive: true });
         await writeFile(out, rep.markdown, "utf8");
+        await writeFile(stableReport, rep.markdown, "utf8");
         boiMarkdownPath = out;
+        reportMarkdownPath = stableReport;
       } catch (e) {
         warnings.push(`BoI report file write failed: ${String(e)}`);
       }
@@ -151,6 +164,7 @@ export async function emitMcpSessionArtifacts(params: {
     traceabilityJsonPath,
     traceabilityMdPath,
     boiMarkdownPath,
+    reportMarkdownPath,
     warnings,
   };
 }

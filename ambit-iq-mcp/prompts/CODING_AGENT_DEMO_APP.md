@@ -14,7 +14,7 @@ You are implementing a minimal demo application in the Ambit.IQ MCP repository (
 ## Constraints
 
 - Keep the solution **small** (one script or a tiny CLI package). Prefer **Node.js 20+**, ESM, and the existing **`@modelcontextprotocol/sdk`** client pattern (stdio transport) — same approach as `scripts/mcp-ci-smoke.mjs`.
-- Do **not** reimplement policy logic; always go through the **MCP server** (`node dist/server.js` after `npm run build`, or `tsx src/server.ts` for local dev).
+- Do **not** reimplement policy logic; always go through the **MCP server** (`node dist/stdio-mcp.js` after `npm run build`, or `tsx src/stdio-mcp.ts` for local dev).
 - Document required **environment variables** and **database migration**; never commit real secrets.
 
 ## Prerequisites (document in README snippet)
@@ -26,7 +26,7 @@ You are implementing a minimal demo application in the Ambit.IQ MCP repository (
 
 ## Demo flow the script must execute (in order)
 
-1. **Build** (if using `dist/server.js`): run `npm run build` in the MCP package root.
+1. **Build** (if using `dist/stdio-mcp.js`): run `npm run build` in the MCP package root.
 2. **Connect** MCP stdio client to the server process.
 3. **`audit_vibe`**  
    - Pass realistic `code` and `profileId` (e.g. `financial-services.eu`).  

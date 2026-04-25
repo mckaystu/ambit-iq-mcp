@@ -1,0 +1,42 @@
+<!-- HTML for static distribution bundle build -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>WCM API</title>
+    <link rel="stylesheet" type="text/css" href="../../../swagger-ui.css" />
+    <style>
+      html
+      {
+        box-sizing: border-box;
+        overflow: -moz-scrollbars-vertical;
+        overflow-y: scroll;
+      }
+
+      *,
+      *:before,
+      *:after
+      {
+        box-sizing: inherit;
+      }
+
+      body
+      {
+        margin:0;
+        background: #fafafa;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="../../../swagger-ui-bundle.js" charset="UTF-8"> </script>
+    <script src="../../../swagger-ui-standalone-preset.js" charset="UTF-8"> </script>
+    <script src="../../../swagger-helper.js" charset="UTF-8"> </script>
+    <script>
+    window.onload = function() {
+      handleDXAspects("../../../specs/wcm/v2/openapi.json","wcmrest-v2");
+    };
+  </script>
+  </body>
+</html>

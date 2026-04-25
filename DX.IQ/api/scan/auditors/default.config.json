@@ -1,0 +1,10 @@
+{
+  "patternAuditor": {
+    "enabled": true,
+    "patterns": ["[Plugin:RemoteAction]", "dojo.ready", "dojo/ready"]
+  },
+  "structureAuditor": {
+    "enabled": true,
+    "maxFolderDepth": 5
+  }
+}

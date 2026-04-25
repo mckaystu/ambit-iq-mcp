@@ -45,7 +45,7 @@ export function assertTamperPersistenceConfigured(): string | null {
 /** Writable fallback dir: Vercel/AWS only allow /tmp, not the deployment root. */
 function grcFallbackDirectory(): string {
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    return path.join("/tmp", "ambit-iq-grc-fallback");
+    return path.join("/tmp", "agent-gate-grc-fallback");
   }
   return path.join(process.cwd(), ".ambit", "grc-fallback");
 }
@@ -173,6 +173,114 @@ export type PersistVibeDecisionResult =
       error: string;
     };
 
+export interface ComplianceActivityInput {
+  userId?: string | null;
+  repoName?: string | null;
+  tenantId?: string | null;
+  industryId?: string | null;
+  severity?: string | null;
+  ruleName?: string | null;
+  ruleId?: string | null;
+  message?: string | null;
+  traceId?: string | null;
+  projectId?: string | null;
+  createdAt?: Date | null;
+}
+
+let complianceActivityColumnsCache: string[] | null = null;
+
+const UUID_V4ISH =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function asUuidOrNull(v: unknown): string | null {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  return UUID_V4ISH.test(s) ? s : null;
+}
+
+function actionFromSeverity(raw: unknown): string | null {
+  const s = String(raw ?? "").trim().toUpperCase();
+  if (!s) return null;
+  if (s.includes("BLOCK")) return "BLOCKER";
+  if (s === "CRITICAL" || s === "HIGH") return "BLOCKER";
+  return "WARNING";
+}
+
+async function complianceActivityColumns(client: PrismaClient): Promise<string[]> {
+  if (complianceActivityColumnsCache) return complianceActivityColumnsCache;
+  const rows = await client.$queryRawUnsafe<Array<{ column_name: string }>>(
+    `
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'compliance_activity'
+    `,
+  );
+  complianceActivityColumnsCache = rows.map((r) => String(r.column_name));
+  return complianceActivityColumnsCache;
+}
+
+/**
+ * Best-effort compliance activity writer.
+ * Never throws to callers; schema mismatches are reported in the return shape.
+ */
+export async function writeComplianceActivities(rows: ComplianceActivityInput[]): Promise<{
+  inserted: number;
+  source: "postgresql" | "none";
+  error?: string;
+}> {
+  if (!rows.length) return { inserted: 0, source: "none" };
+  const client = getPrisma();
+  if (!client) return { inserted: 0, source: "none", error: "DATABASE_URL not configured" };
+  try {
+    const columns = await complianceActivityColumns(client);
+    if (!columns.length) {
+      return {
+        inserted: 0,
+        source: "postgresql",
+        error: "compliance_activity table not found or has no columns",
+      };
+    }
+
+    const insertedRows = await client.$transaction(async (tx) => {
+      let inserted = 0;
+      for (const r of rows) {
+        const valueByColumn: Record<string, unknown> = {
+          user_id: r.userId ?? null,
+          repo_name: r.repoName ?? null,
+          tenant_id: asUuidOrNull(r.tenantId),
+          industry_id: r.industryId ?? null,
+          severity: r.severity ?? null,
+          rule_name: r.ruleName ?? null,
+          rule_id: asUuidOrNull(r.ruleId),
+          message: r.message ?? null,
+          trace_id: r.traceId ?? null,
+          project_id: r.projectId ?? null,
+          created_at: r.createdAt ?? new Date(),
+          timestamp: r.createdAt ?? new Date(),
+          action_taken: actionFromSeverity(r.severity),
+          context_snippet: r.message ?? null,
+          is_resolved: false,
+        };
+        const keys = Object.keys(valueByColumn).filter((k) => columns.includes(k));
+        if (!keys.length) continue;
+        const vals = keys.map((k) => valueByColumn[k]);
+        const colsSql = keys.map((k) => `"${k}"`).join(", ");
+        const bindSql = vals.map((_, i) => `$${i + 1}`).join(", ");
+        await tx.$executeRawUnsafe(
+          `INSERT INTO compliance_activity (${colsSql}) VALUES (${bindSql})`,
+          ...vals,
+        );
+        inserted += 1;
+      }
+      return inserted;
+    });
+    return { inserted: insertedRows, source: "postgresql" };
+  } catch (e) {
+    return { inserted: 0, source: "postgresql", error: String(e) };
+  }
+}
+
 /**
  * Persists the decision log (Postgres chain + signature, or JSON fallback).
  * Returns a Promise so serverless hosts (e.g. Vercel) keep the invocation alive until the write finishes;
@@ -226,9 +334,46 @@ export async function persistVibeDecision(input: VibeTransactionInput): Promise<
       timestamp: new Date().toISOString(),
     });
     console.error(
-      `[ambit-iq-mcp] log_vibe_transaction: Postgres persist failed (${err}). Wrote fallback: ${fp}`,
+      `[agent-gate-mcp] log_vibe_transaction: Postgres persist failed (${err}). Wrote fallback: ${fp}`,
     );
     return { status: "wrote_fallback", reason: "db_integrity_persist_failed", path: fp, error: err };
+  }
+}
+
+/**
+ * Patches metadata for the latest decision log row by trace_id.
+ * Uses JSONB merge so existing metadata keys remain intact.
+ */
+export async function appendDecisionMetadataByTraceId(params: {
+  traceId: string;
+  metadataPatch: Record<string, unknown>;
+}): Promise<{ ok: boolean; updated: number; error?: string }> {
+  const traceId = String(params.traceId || "").trim();
+  if (!traceId) return { ok: false, updated: 0, error: "traceId is required" };
+  const client = getPrisma();
+  if (!client) return { ok: false, updated: 0, error: "DATABASE_URL not configured" };
+  try {
+    const patchJson = JSON.stringify(params.metadataPatch || {});
+    const updated = await client.$executeRawUnsafe(
+      `
+      WITH latest AS (
+        SELECT id
+        FROM ambit_decision_logs
+        WHERE trace_id = $1::uuid
+        ORDER BY timestamp DESC, id DESC
+        LIMIT 1
+      )
+      UPDATE ambit_decision_logs d
+      SET metadata = COALESCE(d.metadata, '{}'::jsonb) || $2::jsonb
+      FROM latest
+      WHERE d.id = latest.id
+      `,
+      traceId,
+      patchJson,
+    );
+    return { ok: true, updated: Number(updated || 0) };
+  } catch (e) {
+    return { ok: false, updated: 0, error: String(e) };
   }
 }
 
@@ -326,7 +471,7 @@ export async function generateAuditReportMarkdown(params: {
       lines.push(`| ${t} | ${r.actorId} | ${d} | ${r.traceId} |`);
     }
     lines.push("");
-    lines.push("_Generated by Ambit.IQ MCP `generate_audit_report`. Not a legal attestation._");
+    lines.push("_Generated by agent.gate MCP `generate_audit_report`. Not a legal attestation._");
     return { ok: true, markdown: lines.join("\n") };
   } catch (e) {
     return { ok: false, markdown: "", error: String(e) };

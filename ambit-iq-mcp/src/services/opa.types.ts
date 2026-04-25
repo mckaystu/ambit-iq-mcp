@@ -33,5 +33,5 @@ export interface OpaEvaluationResult {
   violations: OpaViolation[];
   /** Full HTTP JSON body or synthetic bridge payload (masked before DB write). */
   raw: unknown;
-  source: "opa_rest" | "ambit_bridge";
+  source: "opa_rest" | "agent_gate_bridge";
 }

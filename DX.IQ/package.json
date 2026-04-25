@@ -1,0 +1,47 @@
+{
+  "name": "dx-iq",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:api": "NODE_OPTIONS='--max-old-space-size=384' node --import tsx api/local-dev-server.ts",
+    "dev:all": "concurrently -k -n api,ui -c blue,magenta \"npm run dev:api\" \"npm run dev\"",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test:discover-parse": "node scripts/verify-wcm-discovery.mjs --fixture"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@tanstack/react-table": "^8.20.5",
+    "axios": "^1.15.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "dotenv": "^17.4.1",
+    "fast-xml-parser": "^4.5.1",
+    "ioredis": "^5.10.1",
+    "lucide-react": "^0.469.0",
+    "p-limit": "^7.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.0",
+    "tailwind-merge": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.24",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vercel/node": "^5.3.7",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "tsx": "^4.20.6",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3"
+  }
+}

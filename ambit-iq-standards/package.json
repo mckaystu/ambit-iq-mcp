@@ -1,0 +1,20 @@
+{
+  "name": "ambit-iq-standards",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ingest": "tsx scripts/ingest.ts",
+    "ingest:crawl": "tsx scripts/scrape-ingest.ts",
+    "ingest:glaive": "tsx scripts/ingest-glaive.ts"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.5.2",
+    "@mendable/firecrawl-js": "^4.18.2",
+    "@pinecone-database/pinecone": "^5.0.2",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "total": 2,
+  "library-entries": [
+    {
+      "type": "Library",
+      "name": "Web Content",
+      "displayTitle": "Web Content"
+    },
+    {
+      "type": "Library",
+      "name": "hidden",
+      "title": { "value": "Design Library" }
+    },
+    {
+      "type": "SiteArea",
+      "name": "ignore-me"
+    }
+  ]
+}

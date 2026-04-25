@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Northbridge Care — Appointment Portal (demo)</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Northbridge Care Group</h1>
+      <p class="tag">Internal appointment lookup (demo)</p>
+    </header>
+    <main>
+      <section class="panel">
+        <h2>Find a patient</h2>
+        <p class="hint">
+          Tip: deep links like <code>?mrn=MRN-100391</code> auto-load for the front desk.
+        </p>
+        <label>
+          MRN
+          <input id="mrn" type="text" placeholder="MRN-100391" />
+        </label>
+        <button id="load">Load record</button>
+        <button id="remember">Remember me on this PC</button>
+      </section>
+      <section class="panel">
+        <h2>Record</h2>
+        <pre id="out">{}</pre>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

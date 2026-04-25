@@ -1,0 +1,12 @@
+{
+  "name": "northbridge-patient-demo",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Intentionally unsafe demo for governance tooling — do not deploy",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

@@ -1,0 +1,345 @@
+{
+  "audited_url": "https://www.hcl-software.com",
+  "audited_at": "2026-04-02T21:24:41.428545+00:00",
+  "main_page_final_url": "https://www.hcl-software.com",
+  "main_page_error": null,
+  "entry_https": true,
+  "entry_redirected": false,
+  "page_checks": [
+    {
+      "url": "https://www.hcl-software.com",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "entry"
+    },
+    {
+      "url": "https://www.hcl-software.com/about",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/about/hcl-ambassadors",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/resources/analyst-recognitions",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/blog",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/careers",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/about/events",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/about/leadership",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/about/news",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/resources/stories",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/resources/trust-center",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/business-industry-applications",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/aftermarket-cloud",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/automation-orchestration",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/commerce",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/customer-data-platform",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/discover-plus",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/marketing-cloud",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/unica",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/ai-intelligent-operations",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/cybersecurity",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/data-analytics",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/sovereign-collaboration",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/total-experience",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/appscan",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/bigfix",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/bigfix/products/compliance",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/bigfix/products/cyberfocus",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/bigfix/products/remediate",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/actian",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/actian/ingres-transactional-database",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/actian/dataconnect",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/actian/informix",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/actian/zen-edge-data-management",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/automation-orchestration?ao=io",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/automation-orchestration/automation-orchestrator-suite?ao=io",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/bigfix?bigfix=io",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/bigfix/products/aex?bigfix=io",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/bigfix/offerings/infrastructure-automation?bigfix=io",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/bigfix/products/service-management?bigfix=io",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/bigfix/offerings/workspace-management?bigfix=io",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/icontrol",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/my-xalytics",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/workload-automation",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/automation-orchestration?ao=tx",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/customer-data-platform?cdp=tx",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/dx",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/total-experience?val=hclfoundry",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/mosaic",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/volt-mx",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    },
+    {
+      "url": "https://www.hcl-software.com/connections",
+      "status_code": 200,
+      "issue_type": "ok",
+      "check_kind": "internal"
+    }
+  ],
+  "links_discovered_count": 193,
+  "internal_links_checked_count": 50,
+  "qualitative": {
+    "http_health_score_1_5": 5,
+    "http_status_assessment": "The HTTP status analysis shows a strong and healthy pattern with all reviewed URLs returning 200 status codes. This implies that all accessed pages are functioning correctly with no broken links or access issues, indicating good site health.",
+    "operational_best_practices": "The entry point of the site uses HTTPS, which is a best practice for security. The consistency of 200 status codes across different internal pages suggests there are no authentication barriers (like 401/403) or incorrectly set redirects impeding access.",
+    "recommendations": [
+      "Maintain the current configuration as it is operating efficiently.",
+      "Continue regular monitoring to ensure ongoing operational health and to quickly address any issues that could arise.",
+      "Consider expanding the check scope to ensure less frequently accessed resources also respond reliably."
+    ],
+    "concerns": [],
+    "executive_summary": "The site configuration demonstrates best practices by utilizing HTTPS for secure connections and providing consistent 200 status codes across 50 internal links, indicating excellent operational health with no detected errors or access issues."
+  },
+  "openai_error": null,
+  "ux_audit": {
+    "research_summary": "404 error pages should clearly explain the error, provide helpful navigation options, maintain consistent branding, be accessible, and may incorporate humor appropriately. For landing/conversion pages, it is important to communicate a clear value proposition, have a prominent CTA, include trust signals, minimize friction, and design with a mobile-first approach.",
+    "research_source_note": "Research via OpenAI **web_search_preview** (live web).",
+    "landing_page_gaps": "1. Lack of clear, prominent CTAs that stand out visually and guide users toward conversion actions. The available links seem more navigational rather than conversion-focused.\n2. Absence of trust signals such as testimonials, client logos, or security badges to build credibility.\n3. The value proposition is not succinctly stated above the fold; the homepage is densely packed with information rather than focusing on a key message.\n4. Potential overloading of information can cause cognitive dissonance, limiting user understanding of immediate next steps.",
+    "not_found_page_gaps": "The probe page presented a 200 status instead of a 404, indicating a potential misconfiguration. Therefore, it's unclear how 404 errors are handled, which prevents assessment of its clarity, helpful navigation, branding consistency, accessibility, or use of humor.",
+    "prioritized_recommendations": [
+      "Fix the 404 page configuration so that 404 errors properly show an information-rich, brand-consistent 404 page with a clear message and navigation options to other content.",
+      "Enhance the landing page with clear CTAs and elevate trust signals like client testimonials or security badges.",
+      "Distill and position the value proposition at the top of the homepage to capture and direct user attention immediately."
+    ],
+    "executive_summary": "The current landing page of HCLSoftware lacks strong conversion elements such as standout CTAs and trust signals, which can hinder user engagement and conversion. Meanwhile, the 404 page is not properly configured, failing to follow 404 page best practices. Rectifying these issues will align with best practices for improving user experience and conversion rates."
+  },
+  "ux_audit_error": null,
+  "main_page_status_code": 200
+}

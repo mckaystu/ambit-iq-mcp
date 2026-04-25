@@ -1,6 +1,6 @@
-# Ambit.IQ MCP
+# agent-gate-mcp (agent.gate)
 
-Policy-style checks exposed as MCP tools, now with profile-based governance.
+Policy-style checks exposed as MCP tools, now with profile-based governance. The **agent.gate** name is used in the admin dashboard UI, certificates, and MCP-facing metadata.
 
 ## Tools
 
@@ -17,6 +17,7 @@ Policy-style checks exposed as MCP tools, now with profile-based governance.
     - `healthcare.us`
 - `list_vibe_profiles`: list available policy profiles.
 - `list_vibe_rules`: list active rules for a profile.
+  - Optional filters (when using shared rules library): `tenantId`, `industryId`, `complianceTags[]`, `domainId`
 - `log_audit_trail`:
   - Input schema:
     - `user_prompt` (string)
@@ -30,12 +31,35 @@ Policy-style checks exposed as MCP tools, now with profile-based governance.
   - `get_compliance_history`: last DENY rows, optional `actor_id` / `violation_type` filter (parameterized SQL).
   - `generate_audit_report`: Markdown “Software Bill of Intent” for `metadata.project_id` over the last N hours (default 24).
   - `verify_audit_integrity`: Recompute hashes, validate the chain (`previous_hash` ↔ prior `log_hash`), and verify RSA signatures (`AMBIT_VERIFYING_KEY`). Returns **Clean**, **Tamper Alert**, or **Skipped** (no database).
+- `query_governance_standards`: Pinecone semantic search over ingested standards (top 3). Uses the **Hugging Face Inference API** for embeddings (`HUGGINGFACE_API_TOKEN`, optional `HF_EMBEDDING_MODEL_ID`) so **Vercel** stays under the serverless size limit — do not bundle `@huggingface/transformers` in this repo. Also needs `PINECONE_API_KEY` (and optional `PINECONE_INDEX_NAME`).
+
+## Shared Rules Library (Neon/Postgres)
+
+Ambit can now load policy rules from a shared `rules_library` table (fallback to embedded defaults if DB is unavailable/empty). This enables tenant/industry/tag/domain-aware rule activation without rebuilding the MCP server.
+
+- Refresh behavior: in-memory cache refreshed every ~30s
+- Rule format: JSON regex in `rule_logic.pattern` (case-insensitive)
+- Special IDs still supported:
+  - `QUAL-002` uses AST/legacy network error-handling check
+  - `DORA-001` uses AST/legacy timeout check
+
+Seed baseline rules into `rules_library`:
+
+```bash
+npm run db:seed:rules-library
+```
+
+Use context filters in tool calls:
+
+- `audit_vibe`: `tenantId`, `industryId`, `complianceTags`, `domainId`
+- `list_vibe_rules`: same filters
+- `log_vibe_transaction`: `tenant_id`, `industry_id`, `compliance_tags`, `domain_id` (or via `metadata`)
 
 ## Database (Phase 2)
 
 1. Copy `.env.example` → `.env` and set **`DATABASE_URL`** (do not commit secrets).
 2. Apply schema to Neon/Postgres: run **`migrations/001_ambit_decision_logs.sql`**, then **`migrations/002_integrity_hash_chain.sql`** (or a single `npx prisma db push` against that database). Skipping **002** causes Prisma errors (`previous_hash` missing) for `verify_audit_integrity`, `generate_audit_report`, and inserts that include the hash chain.
-3. Optional: run Open Policy Agent and set **`OPA_URL`** (e.g. `http://localhost:8181`) and **`OPA_POLICY_PATH`** (default `data.ambit.decision` → `POST /v1/data/ambit/decision` with body `{"input":{...}}`).
+3. Optional: run Open Policy Agent and set **`OPA_URL`** (e.g. `http://localhost:8181`) and **`OPA_POLICY_PATH`** (default `data.agent.gate.decision` → `POST /v1/data/agent/gate/decision` with body `{"input":{...}}`).
 4. **Signing and verification:** when **`DATABASE_URL`** is set, **`AMBIT_SIGNING_KEY`** (RSA private PEM, use `\n` for newlines in env) is **required** for `log_vibe_transaction` to persist; each row stores `previous_hash`, `log_hash`, and `signature`. Concurrent writers are serialized with `pg_advisory_xact_lock` + `SELECT … FOR UPDATE` on the chain head. Set **`AMBIT_VERIFYING_KEY`** for `verify_audit_integrity` to check signatures. Generate keys with `openssl genrsa 2048` / `openssl rsa -pubout`.
 
 ### Troubleshooting: no rows in `ambit_decision_logs`
@@ -64,7 +88,7 @@ npm run build
 npm start
 ```
 
-Point Cursor at **`dist/server.js`** with `node`, or use **`index.js`** (re-exports `dist/server.js` after build). For iterative work: `npm run dev` (tsx).
+Point Cursor at **`dist/stdio-mcp.js`** with `node`, or **`node scripts/cursor-stdio.mjs`** (same as `npm start` after build). **Stdio** lives in **`src/stdio-mcp.ts`** only — do **not** use **`src/server.ts`** (Vercel treats it as the app server and stdio has no handler export). **`src/index.ts`** exists solely to satisfy Vercel’s required entrypoint list; it re-exports the **HTTP** handler from **`http-mcp.ts`** (same as **`api/mcp.js`**). **Do not set `package.json` `main`** for this deploy shape. HTTP MCP: **`api/mcp.js`** + rewrite **`/mcp`**; static **`/`** from **`public/`**. **Do not** add a root `index.js`. For iterative work: `npm run dev` (tsx).
 
 Set **`DATABASE_URL`** and **`MCP_AUTH_TOKEN`** (Vercel) as required for your deployment.
 
@@ -76,8 +100,8 @@ Deploy from this project folder:
 npx vercel
 ```
 
-- MCP URL:
-  - `https://<deployment>.vercel.app/mcp` (recommended)
+- **Browser `GET /`** should serve `public/index.html`. The MCP endpoint is separate:
+  - `https://<deployment>.vercel.app/mcp` (recommended; rewrite → `/api/mcp`)
   - `https://<deployment>.vercel.app/api/mcp` (direct function path)
 
 ### Authentication (recommended for production)
@@ -106,7 +130,7 @@ This app is **serverless** (`api/mcp.js`) plus a tiny static `public/` folder. I
 
 Streamable HTTP MCP often keeps a **GET** (SSE / long-lived stream) open. **Vercel Serverless** enforces a **maximum duration per invocation** (commonly **300s** on Pro; Hobby is lower). When the limit is hit, Vercel logs **Runtime Timeout** even if the client had **200** earlier.
 
-- **Expected:** long sessions may disconnect; the MCP client should **reconnect** automatically. If Cursor misbehaves after ~5 minutes, **reload MCP** or use **local stdio** (`node dist/server.js`) for heavy sessions.
+- **Expected:** long sessions may disconnect; the MCP client should **reconnect** automatically. If Cursor misbehaves after ~5 minutes, **reload MCP** or use **local stdio** (`node dist/stdio-mcp.js`) for heavy sessions.
 - **Need always-on / no hard cap:** run the same app on **Fly.io**, **Railway**, **Render**, or a small **VPS** (long-running Node), not Vercel serverless.
 - This repo sets **`maxDuration`: 300** for `api/mcp.js` (`vercel.json` + `export const config` in `api/mcp.js`) so the route uses the longest duration your plan allows.
 

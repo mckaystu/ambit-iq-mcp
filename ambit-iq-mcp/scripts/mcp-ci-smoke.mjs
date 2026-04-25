@@ -11,7 +11,7 @@ execSync("npm run build", { cwd, stdio: "inherit" });
 const client = new Client({ name: "ambit-iq-ci-smoke", version: "1.0.0" });
 const transport = new StdioClientTransport({
   command: "node",
-  args: [path.resolve(cwd, "dist", "server.js")],
+  args: [path.resolve(cwd, "dist", "stdio-mcp.js")],
 });
 
 await client.connect(transport);
@@ -22,10 +22,13 @@ for (const required of [
   "audit_vibe",
   "log_audit_trail",
   "list_vibe_profiles",
+  "refresh_rules_library",
+  "get_rules_library_status",
   "log_vibe_transaction",
   "get_compliance_history",
   "generate_audit_report",
   "verify_audit_integrity",
+  "query_governance_standards",
 ]) {
   if (!names.has(required)) {
     throw new Error(`Missing required MCP tool: ${required}`);

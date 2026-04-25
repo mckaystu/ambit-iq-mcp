@@ -1,0 +1,11 @@
+---
+description: Ambit.IQ ecosystem — MCP, GRC, deploy, and secrets
+alwaysApply: true
+---
+
+# Ambit.IQ standards
+
+- Treat **`ambit-iq-mcp`** as the implementation reference for tools, env vars, and Vercel vs stdio split.
+- **Never** commit or log raw signing keys, tokens, or full `DATABASE_URL` values.
+- Preserve **backward-compatible** MCP tool inputs/outputs unless explicitly versioning a break.
+- For local Cursor MCP, use the **stdio** build; HTTP entrypoints are for deployed/Vercel use.

@@ -4,6 +4,8 @@ node_modules/
 .ambit/grc-fallback/
 dist/
 reports/*.html
+# Ephemeral BoI / smoke outputs (keep checked-in samples like demo-audit-report.md if desired)
+reports/ambit-iq-boi-*.md
 .env
 .env.*
 !.env.example

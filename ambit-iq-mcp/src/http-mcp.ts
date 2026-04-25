@@ -5,7 +5,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { registerAmbitIqHandlers } from "./handlers.js";
-import { AuditStore } from "#audit";
+import { AuditStore } from "../lib/auditTrail.js";
 
 function extractBearerToken(req: IncomingMessage): string | null {
   const h = String(req.headers.authorization || "");
@@ -77,45 +77,57 @@ export default async function handler(
     return;
   }
 
-  const expectedToken = String(process.env.MCP_AUTH_TOKEN || "").trim();
-  if (!expectedToken) {
+  try {
+    const expectedToken = String(process.env.MCP_AUTH_TOKEN || "").trim();
+    if (!expectedToken) {
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.end(
+        JSON.stringify({
+          error: "Server auth misconfigured: MCP_AUTH_TOKEN is not set.",
+        }),
+      );
+      return;
+    }
+    const incomingToken = extractBearerToken(req);
+    if (!incomingToken || incomingToken !== expectedToken) {
+      rejectUnauthorized(res, "Invalid or missing bearer token.");
+      return;
+    }
+
+    let parsedBody: unknown;
+    if (req.method === "POST") {
+      parsedBody = await readJsonBody(req);
+    }
+
+    const server = new Server(
+      { name: "AgentGate", version: "2.0.0" },
+      { capabilities: { tools: {} } },
+    );
+    const auditStore = new AuditStore();
+    registerAmbitIqHandlers(server, { auditStore });
+
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+
+    await server.connect(transport);
+
+    res.on("close", () => {
+      transport.close().catch(() => {});
+      server.close().catch(() => {});
+    });
+
+    await transport.handleRequest(req, res, parsedBody);
+  } catch (err) {
+    console.error("[ambit-http-mcp]", err);
+    if (res.headersSent) {
+      res.destroy();
+      return;
+    }
     res.statusCode = 500;
     res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.end(
-      JSON.stringify({
-        error: "Server auth misconfigured: MCP_AUTH_TOKEN is not set.",
-      }),
-    );
-    return;
+    const message = err instanceof Error ? err.message : String(err);
+    res.end(JSON.stringify({ error: "MCP handler failed", message }));
   }
-  const incomingToken = extractBearerToken(req);
-  if (!incomingToken || incomingToken !== expectedToken) {
-    rejectUnauthorized(res, "Invalid or missing bearer token.");
-    return;
-  }
-
-  let parsedBody: unknown;
-  if (req.method === "POST") {
-    parsedBody = await readJsonBody(req);
-  }
-
-  const server = new Server(
-    { name: "ambit-iq-governance", version: "2.0.0" },
-    { capabilities: { tools: {} } },
-  );
-  const auditStore = new AuditStore();
-  registerAmbitIqHandlers(server, { auditStore });
-
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
-  });
-
-  await server.connect(transport);
-
-  res.on("close", () => {
-    transport.close().catch(() => {});
-    server.close().catch(() => {});
-  });
-
-  await transport.handleRequest(req, res, parsedBody);
 }

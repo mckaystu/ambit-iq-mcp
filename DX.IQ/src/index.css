@@ -1,0 +1,191 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --stripe-space-3: 0.75rem;
+  --stripe-space-4: 1rem;
+  --stripe-space-5: 1.25rem;
+  --stripe-radius-sm: 10px;
+  --stripe-radius-md: 12px;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1100px 500px at -8% -12%, rgba(99, 91, 255, 0.1), rgba(99, 91, 255, 0) 55%),
+    radial-gradient(900px 420px at 108% -8%, rgba(0, 212, 255, 0.08), rgba(0, 212, 255, 0) 55%),
+    #f6f9fc;
+  color: #0a2540;
+  font-family: Inter, "Soehne", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.stripe-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  box-shadow: 0 16px 38px rgba(50, 50, 93, 0.1), 0 4px 14px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e6ebf1;
+}
+
+.stripe-hero::before {
+  content: "";
+  position: absolute;
+  inset: -45% -20% auto -35%;
+  height: 280px;
+  background:
+    linear-gradient(115deg, rgba(99, 91, 255, 0.3), rgba(0, 212, 255, 0.22) 40%, rgba(99, 91, 255, 0.12) 70%),
+    linear-gradient(145deg, rgba(180, 196, 255, 0.26), rgba(255, 255, 255, 0));
+  transform: skewY(-8deg);
+  pointer-events: none;
+}
+
+.stripe-card {
+  border: 1px solid #e6ebf1;
+  border-radius: var(--stripe-radius-md);
+  background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
+  box-shadow: 0 8px 22px rgba(50, 50, 93, 0.06), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.stripe-card .stripe-card {
+  border-radius: var(--stripe-radius-sm);
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(50, 50, 93, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.stripe-card.p-3 {
+  padding: var(--stripe-space-3);
+}
+
+.stripe-card.p-4 {
+  padding: var(--stripe-space-4);
+}
+
+.stripe-card.p-5 {
+  padding: var(--stripe-space-5);
+}
+
+.stripe-section {
+  margin-top: 40px;
+  position: relative;
+}
+
+.stripe-section::before {
+  content: "";
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(99, 91, 255, 0), rgba(99, 91, 255, 0.2), rgba(99, 91, 255, 0));
+  pointer-events: none;
+}
+
+.stripe-input {
+  width: 100%;
+  border: 1px solid #d8dee9;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  color: #0a2540;
+  padding: 0.6rem 0.75rem;
+  transition: border-color 220ms cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 220ms cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.stripe-input::placeholder {
+  color: #6b7c93;
+}
+
+.stripe-input:focus {
+  outline: none;
+  border-color: #635bff;
+  box-shadow: 0 0 0 4px rgba(99, 91, 255, 0.16);
+}
+
+.stripe-section h2 {
+  font-size: 1.02rem;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.stripe-section p {
+  line-height: 1.45;
+}
+
+.stripe-card .text-xs.uppercase {
+  letter-spacing: 0.07em;
+  font-weight: 600;
+}
+
+.stripe-button {
+  border-radius: 8px;
+  box-shadow: 0 8px 18px rgba(50, 50, 93, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: transform 180ms cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 180ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    background-color 180ms cubic-bezier(0.165, 0.84, 0.44, 1), color 180ms cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.stripe-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(50, 50, 93, 0.14), 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.stripe-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 6px 12px rgba(50, 50, 93, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.stripe-button-primary {
+  background: linear-gradient(180deg, #6d65ff 0%, #635bff 65%, #5b53f0 100%);
+  color: #ffffff;
+}
+
+.stripe-button-primary:hover:not(:disabled) {
+  background: #574eff;
+}
+
+.stripe-button-secondary {
+  background: #ffffff;
+  color: #424770;
+  border: 1px solid #d8dee9;
+}
+
+.stripe-button-secondary:hover:not(:disabled) {
+  border-color: #635bff;
+  color: #635bff;
+}
+
+.recharts-default-tooltip {
+  background: #ffffff !important;
+  border: 1px solid #d8dee9 !important;
+  border-radius: 8px !important;
+}
+
+.recharts-tooltip-item {
+  color: #0a2540 !important;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+@media (min-width: 1024px) {
+  .stripe-card {
+    border-radius: 14px;
+  }
+
+  .stripe-section {
+    margin-top: 32px;
+  }
+}
+

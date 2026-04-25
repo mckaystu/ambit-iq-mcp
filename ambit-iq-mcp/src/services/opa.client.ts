@@ -5,7 +5,7 @@ import type {
   OpaViolation,
 } from "./opa.types.js";
 
-function bridgeFromAmbitFindings(
+function bridgeFromAgentGateFindings(
   input: OpaEvaluationInput,
   findings: Array<{
     ruleId: string;
@@ -23,16 +23,16 @@ function bridgeFromAmbitFindings(
     allow: violations.length === 0,
     violations,
     raw: {
-      bridge: "ambit_policy_engine",
+      bridge: "agent_gate_policy_engine",
       input,
       findings,
     },
-    source: "ambit_bridge",
+    source: "agent_gate_bridge",
   };
 }
 
 /**
- * Evaluates policy via OPA REST API when OPA_URL is set; otherwise maps built-in Ambit rules to OPA-shaped violations.
+ * Evaluates policy via OPA REST API when OPA_URL is set; otherwise maps built-in agent.gate rules to OPA-shaped violations.
  */
 export async function evaluatePolicy(
   input: OpaEvaluationInput,
@@ -52,10 +52,10 @@ export async function evaluatePolicy(
   if (!opaBase) {
     const audit = runPolicyAudit(input.code, profileId);
     const findings = audit.findings || [];
-    return bridgeFromAmbitFindings(input, findings);
+    return bridgeFromAgentGateFindings(input, findings);
   }
 
-  let policyPath = String(process.env.OPA_POLICY_PATH || "data.ambit.decision").trim();
+  let policyPath = String(process.env.OPA_POLICY_PATH || "data.agent.gate.decision").trim();
   if (policyPath.startsWith("data.")) {
     policyPath = policyPath.slice(5);
   }
@@ -91,14 +91,14 @@ export async function evaluatePolicy(
     clearTimeout(t);
     const audit = runPolicyAudit(input.code, profileId);
     const findings = audit.findings || [];
-    const fallback = bridgeFromAmbitFindings(input, findings);
+    const fallback = bridgeFromAgentGateFindings(input, findings);
     return {
       ...fallback,
       raw: {
         opa_error: String(e),
         fallback: fallback.raw,
       },
-      source: "ambit_bridge",
+      source: "agent_gate_bridge",
     };
   }
 }

@@ -1,0 +1,11 @@
+You are working on agent.gate, a standalone governance and observability engine.
+
+Product positioning:
+- Always refer to the product as "agent.gate" in user-facing copy.
+- This is NOT SonarQube.
+- This has no dependency on the Domino REST API.
+
+Technical guidance:
+- Prefer policy-driven governance workflows and explicit auditability.
+- Keep telemetry naming under the `agent.gate.*` namespace.
+- Keep issue/violation metric naming under `agent.gate.issues.*`.

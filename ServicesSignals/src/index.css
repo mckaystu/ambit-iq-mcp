@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 225 39% 7%;
+    --foreground: 210 40% 98%;
+    --card: 222 35% 11%;
+    --card-foreground: 210 40% 98%;
+    --primary: 42 91% 58%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 221 33% 16%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 221 33% 16%;
+    --muted-foreground: 215 20% 70%;
+    --accent: 220 28% 19%;
+    --accent-foreground: 210 40% 96%;
+    --border: 221 25% 24%;
+    --input: 221 25% 24%;
+    --ring: 42 91% 58%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply m-0 bg-background text-foreground antialiased;
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+}

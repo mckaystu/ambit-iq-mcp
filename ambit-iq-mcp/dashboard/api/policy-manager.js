@@ -1,5 +1,15 @@
 import { getPool } from "./_pool.js";
+import { requireAuth } from "./_auth.js";
+import { withRateLimit, safeJson } from "./_security.js";
 import OpenAI from "openai";
+import { extractAgentGateTestPattern, normalizeAgentGateRegexSource } from "../../lib/agentGateRegexComment.mjs";
+import { resolveShadowImpactMatcher } from "../../lib/shadowImpactResolve.mjs";
+import {
+  processVimlPreviewRequest,
+  validateOptionalVimlForGenerate,
+  buildGeneratePayloadVimlPreview,
+  mergeVimlDocumentIntoRuleLogic,
+} from "../../lib/vimlPolicyIdeActions.mjs";
 
 function corsHeaders() {
   return {
@@ -25,44 +35,7 @@ function readBody(req) {
   });
 }
 
-/** Extract first `# AGENT_GATE:test <regex>` line from Rego for shadow impact simulation. */
-function extractAgentGateTestPattern(regoCode) {
-  const text = String(regoCode || "");
-  const m = text.match(/^\s*#\s*(?:AGENT_GATE|AMBIT):test\s+(.+)$/im);
-  if (!m) return null;
-  const raw = m[1].trim();
-  if (!raw || raw.length > 256) return null;
-  return raw;
-}
-
-/**
- * Models often emit PCRE-style (?i) at the start; `new RegExp("(?i)foo", "i")` throws in JavaScript.
- * Strip leading (?imsux...) clusters and map m/s into RegExp flags (outer "i" stays default).
- * @returns {{ source: string, flags: string, hadInline: boolean }}
- */
-function normalizeAgentGateRegexSource(raw) {
-  const original = String(raw || "").trim();
-  let p = original;
-  let hadInline = false;
-  let mFlag = false;
-  let sFlag = false;
-  while (true) {
-    const m = p.match(/^\(\?([imsux]+)\)/i);
-    if (!m) break;
-    const chars = m[1].toLowerCase();
-    if (!/^[imsux]+$/.test(chars)) break;
-    hadInline = true;
-    if (chars.includes("m")) mFlag = true;
-    if (chars.includes("s")) sFlag = true;
-    p = p.slice(m[0].length).trimStart();
-  }
-  let flags = "i";
-  if (mFlag) flags += "m";
-  if (sFlag) flags += "s";
-  return { source: p, flags, hadInline: hadInline && p !== original };
-}
-
-const OPENAI_SYSTEM = `You are an expert assistant for agent.gate governance policy drafting.
+const OPENAI_SYSTEM = `You are an expert assistant for Project Vail governance policy drafting.
 Return ONLY a single JSON object (no markdown fences) with exactly these keys:
 - "rego_code": string — a concise OPA Rego module or stub (package + illustrative rules). It MUST contain a line that matches /^#\\s*AGENT_GATE:test\\s+(.+)$/m where the captured part is ONE JavaScript-compatible regular expression source (no / delimiters) used with new RegExp(...) to scan TypeScript/JavaScript code for violations matching the user's intent. Put that comment near the top. Never prefix that regex with PCRE-only inline flags like (?i) or (?m); the scanner applies case-insensitivity and may normalize flags separately.
 - "rule_logic": object with keys "id" (unique string like NL-abc123), "pattern" (same regex string as in AGENT_GATE:test), "severity" ("BLOCKER"|"HIGH"|"MEDIUM"), "action" (short remediation title), "description" (one sentence rationale).
@@ -387,7 +360,7 @@ function classifyActor(row) {
   return "agent";
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     Object.entries(corsHeaders()).forEach(([k, v]) => res.setHeader(k, v));
@@ -398,11 +371,17 @@ export default async function handler(req, res) {
     return sendJson(res, 405, { error: "Method not allowed" });
   }
 
+  try {
+    requireAuth(req);
+  } catch (e) {
+    return sendJson(res, Number(e?.statusCode || 401), { error: String(e?.message || e) });
+  }
+
   let body;
   try {
-    body = JSON.parse((await readBody(req)) || "{}");
-  } catch {
-    return sendJson(res, 400, { error: "Invalid JSON" });
+    body = await safeJson(req, { limitBytes: 1024 * 1024 });
+  } catch (e) {
+    return sendJson(res, Number(e?.statusCode || 400), { error: String(e?.message || e) });
   }
 
   const action = String(body.action || "").trim();
@@ -423,9 +402,19 @@ export default async function handler(req, res) {
   const pool = getPool();
 
   try {
+    if (action === "viml-preview") {
+      const r = processVimlPreviewRequest(body);
+      return sendJson(res, r.status, r.json);
+    }
+
     if (action === "generate") {
       const intent = String(body.intent || "").trim();
       if (!intent) return sendJson(res, 400, { error: "intent is required" });
+      const vimlRaw = String(body.viml || "").trim();
+      const vimlCheck = validateOptionalVimlForGenerate(vimlRaw);
+      if (!vimlCheck.ok) {
+        return sendJson(res, vimlCheck.status, vimlCheck.json);
+      }
       const hasKey = Boolean(String(process.env.OPENAI_API_KEY || "").trim());
       if (!hasKey) {
         return sendJson(res, 503, {
@@ -436,7 +425,10 @@ export default async function handler(req, res) {
       }
       try {
         const out = await generateFromOpenAI(intent);
-        return sendJson(res, 200, { ok: true, ...out, original_intent: intent });
+        let payload = { ok: true, ...out, original_intent: intent };
+        const preview = buildGeneratePayloadVimlPreview(vimlRaw);
+        if (preview) payload = { ...payload, viml_preview: preview };
+        return sendJson(res, 200, payload);
       } catch (e) {
         const msg = String(e?.message || e);
         const code = e?.code || "GENERATION_FAILED";
@@ -497,27 +489,15 @@ export default async function handler(req, res) {
     }
 
     if (action === "shadow-impact") {
-      const rego_code = String(body.rego_code || "");
       const hours = Math.min(168, Math.max(1, Number(body.hours) || 24));
-      const patternStr = extractAgentGateTestPattern(rego_code);
-      if (!patternStr) {
-        return sendJson(res, 200, {
-          ok: true,
-          flagged_total: 0,
-          flagged_agent: 0,
-          flagged_human: 0,
-          rows_scanned: 0,
-          note:
-            'No simulation pattern found. Add a line like "# AGENT_GATE:test <regex>" near the top of your Rego (JavaScript-compatible regex source, no slashes).',
-        });
+      const resolved = resolveShadowImpactMatcher(body);
+      if (resolved.type === "error") {
+        return sendJson(res, resolved.status, resolved.json);
       }
-      const norm = normalizeAgentGateRegexSource(patternStr);
-      let re;
-      try {
-        re = new RegExp(norm.source, norm.flags);
-      } catch (e) {
-        return sendJson(res, 400, { error: `Invalid regex in # AGENT_GATE:test: ${String(e)}` });
+      if (resolved.type === "empty") {
+        return sendJson(res, resolved.status, resolved.json);
       }
+      const { impact_mode, wouldFlag, meta } = resolved;
 
       const { rows } = await pool.query(
         `
@@ -534,7 +514,7 @@ export default async function handler(req, res) {
       let human = 0;
       for (const row of rows) {
         const code = String(row.proposed_code || "");
-        if (!re.test(code)) continue;
+        if (!wouldFlag(code)) continue;
         const c = classifyActor(row);
         if (c === "human") human += 1;
         else agent += 1;
@@ -551,13 +531,15 @@ export default async function handler(req, res) {
 
       return sendJson(res, 200, {
         ok: true,
+        impact_mode,
         rows_scanned: rows.length,
         flagged_total: total,
         flagged_agent: agent,
         flagged_human: human,
         hours,
-        pattern: norm.source,
-        pattern_flags: norm.flags,
+        ...(meta?.pattern != null ? { pattern: meta.pattern, pattern_flags: meta.pattern_flags } : {}),
+        ...(meta?.viml_profile !== undefined ? { viml_profile: meta.viml_profile } : {}),
+        ...(meta?.enforce_rule_count != null ? { enforce_rule_count: meta.enforce_rule_count } : {}),
       });
     }
 
@@ -565,6 +547,7 @@ export default async function handler(req, res) {
       const original_intent = String(body.original_intent || "").trim();
       const rego_code = String(body.rego_code || "").trim();
       const rule_name = String(body.rule_name || "").trim() || "Untitled shadow rule";
+      const vimlDeploy = String(body.viml || "").trim();
       let rule_logic = body.rule_logic;
       if (typeof rule_logic === "string") {
         try {
@@ -576,6 +559,11 @@ export default async function handler(req, res) {
       if (!rule_logic || typeof rule_logic !== "object") {
         return sendJson(res, 400, { error: "rule_logic object is required" });
       }
+      const merged = mergeVimlDocumentIntoRuleLogic(rule_logic, vimlDeploy);
+      if (!merged.ok) {
+        return sendJson(res, 400, merged.json);
+      }
+      rule_logic = merged.rule_logic;
 
       const ins = await pool.query(
         `
@@ -615,7 +603,10 @@ export default async function handler(req, res) {
       });
     }
 
-    return sendJson(res, 400, { error: "Unknown action. Use generate, analyze-rejection, shadow-impact, or deploy-shadow." });
+    return sendJson(res, 400, {
+      error:
+        "Unknown action. Use generate, viml-preview, analyze-rejection, shadow-impact, or deploy-shadow.",
+    });
   } catch (error) {
     const msg = String(error);
     if (msg.includes("column") && msg.includes("does not exist")) {
@@ -627,3 +618,5 @@ export default async function handler(req, res) {
     return sendJson(res, 500, { error: msg });
   }
 }
+
+export default withRateLimit(handler, { max: 60, windowMs: 60_000 });

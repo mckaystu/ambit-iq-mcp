@@ -1,0 +1,9 @@
+vibe:
+  intent: Block eval in code under test
+  profile: baseline.global
+enforce:
+  - id: FIX-EVAL
+    pattern: "eval\\("
+    severity: high
+    message: No eval
+on_failure: eval is disallowed

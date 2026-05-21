@@ -9,7 +9,7 @@ export type PolicyAuditResult = ReturnType<typeof runPolicyAudit>;
 
 export function reportsDirectory(): string {
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    return "/tmp/agent-gate-reports";
+    return "/tmp/project-vail-reports";
   }
   return path.join(process.cwd(), "reports");
 }
@@ -43,7 +43,7 @@ export function formatArtifactSuffix(w: SessionArtifactPaths): string {
   if (w.reportMarkdownPath) lines.push(`Stable report markdown: ${w.reportMarkdownPath}`);
   for (const x of w.warnings) lines.push(`Note: ${x}`);
   if (!lines.length) return "";
-  return `\n\n---\nagent.gate session artifacts\n${lines.map((l) => `- ${l}`).join("\n")}`;
+  return `\n\n---\nProject Vail session artifacts\n${lines.map((l) => `- ${l}`).join("\n")}`;
 }
 
 /**
@@ -84,11 +84,11 @@ export async function emitMcpSessionArtifacts(params: {
       result: auditResult,
       appName: params.appName,
       targetEnvironment: params.targetEnvironment,
-      scannerName: "agent.gate",
+      scannerName: "Project Vail",
     });
     const fallbackPath = path.join(
       reportsDirectory(),
-      `agent-gate-certificate-${toolTag}-${stamp}-${safeProfile}.html`,
+      `project-vail-certificate-${toolTag}-${stamp}-${safeProfile}.html`,
     );
     const outPath = params.certificateOutputPath
       ? path.resolve(String(params.certificateOutputPath))
@@ -142,7 +142,7 @@ export async function emitMcpSessionArtifacts(params: {
     if (rep.ok) {
       const out = path.join(
         reportsDirectory(),
-        `agent-gate-boi-${safeTag(projectId, 48)}-${stamp}.md`,
+        `project-vail-boi-${safeTag(projectId, 48)}-${stamp}.md`,
       );
       const stableReport = path.join(reportsDirectory(), "report.md");
       try {

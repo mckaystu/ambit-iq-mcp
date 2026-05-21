@@ -16,7 +16,7 @@ function githubHeaders(extra = {}) {
   return {
     Authorization: `Bearer ${requireEnv("GITHUB_TOKEN")}`,
     Accept: "application/vnd.github+json",
-    "User-Agent": "agent-gate-pr-rejection-tester",
+    "User-Agent": "project-vail-pr-rejection-tester",
     ...extra,
   };
 }

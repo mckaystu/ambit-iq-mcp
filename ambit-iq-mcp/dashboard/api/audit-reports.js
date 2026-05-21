@@ -1,4 +1,6 @@
 import { getPool } from "./_pool.js";
+import { requireAuth } from "./_auth.js";
+import { withRateLimit } from "./_security.js";
 
 function corsHeaders() {
   return {
@@ -29,7 +31,7 @@ function triStateFromQuery(v) {
   return null;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     Object.entries(corsHeaders()).forEach(([k, v]) => res.setHeader(k, v));
@@ -40,6 +42,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    requireAuth(req);
     const pool = getPool();
     const url = new URL(req.url, "https://audit-reports.local");
     const limit = Math.max(1, Math.min(Number(url.searchParams.get("limit") || 100), 500));
@@ -107,4 +110,6 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default withRateLimit(handler);
 

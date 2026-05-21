@@ -1,4 +1,7 @@
 import { getPool } from "./_pool.js";
+import { requireAuth, hasPermission } from "./_auth.js";
+import { logAdminAction } from "./_admin-audit.js";
+import { withRateLimit, safeJson } from "./_security.js";
 
 function corsHeaders() {
   return {
@@ -47,7 +50,7 @@ function normTenantUuid(v) {
   return re.test(s) ? s : null;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     Object.entries(corsHeaders()).forEach(([k, v]) => res.setHeader(k, v));
@@ -57,6 +60,7 @@ export default async function handler(req, res) {
   const method = req.method || "GET";
 
   try {
+    const user = requireAuth(req);
     const pool = getPool();
 
     if (method === "GET") {
@@ -91,12 +95,12 @@ export default async function handler(req, res) {
     }
 
     if (method === "POST" || method === "PUT") {
-      const raw = await readBody(req);
+      if (!hasPermission(user, "manage.policies")) return sendJson(res, 403, { error: "Forbidden" });
       let body;
       try {
-        body = JSON.parse(raw || "{}");
-      } catch {
-        return sendJson(res, 400, { error: "Invalid JSON body" });
+        body = await safeJson(req);
+      } catch (e) {
+        return sendJson(res, Number(e?.statusCode || 400), { error: String(e?.message || e) });
       }
 
       const rule_name = String(body.rule_name || "").trim();
@@ -121,6 +125,7 @@ export default async function handler(req, res) {
       }
 
       if (method === "POST") {
+        await logAdminAction({ user, action: "policy.create", metadata: { rule_name } });
         const ins = await pool.query(
           `
           INSERT INTO rules_library
@@ -196,6 +201,7 @@ export default async function handler(req, res) {
       if (!upd.rows.length) {
         return sendJson(res, 404, { error: "rule_id not found" });
       }
+      await logAdminAction({ user, action: "policy.update", metadata: { rule_id } });
       const r = upd.rows[0];
       return sendJson(res, 200, {
         rule: {
@@ -214,9 +220,12 @@ export default async function handler(req, res) {
 
     return sendJson(res, 405, { error: "Method not allowed" });
   } catch (error) {
-    return sendJson(res, 500, {
-      error: String(error),
+    const status = Number(error?.statusCode || 500);
+    return sendJson(res, status, {
+      error: String(error?.message || error),
       note: "rules_library API failed. Check DATABASE_URL and rules_library table schema.",
     });
   }
 }
+
+export default withRateLimit(handler);

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bot, BrainCircuit, ChevronDown, ChevronRight, Layers, Moon, Send, ShieldCheck, Sparkles, Sun, X } from "lucide-react";
+import { Bot, BrainCircuit, ChevronDown, ChevronRight, ClipboardCopy, Layers, Moon, Send, ShieldCheck, Sparkles, Sun, X } from "lucide-react";
 import { Badge, Card } from "@tremor/react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PRODUCT_NAME } from "./brand";
@@ -33,6 +33,31 @@ type PolicyRow = {
 
 function cls(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(" ");
+}
+
+/** Build VIML (YAML) for Policy IDE / MCP `viml` argument from a governance signal row. */
+function signalRowToVimlYaml(row: SignalRow, intent: string): string {
+  const safeId = `sig_${String(row.id).replace(/[^a-zA-Z0-9_]/g, "_")}`;
+  const profile = row.priority === "HIGH" ? "financial-services.eu" : "baseline.global";
+  const logicLines = (row.suggested_rego_logic || "default allow := true\n").trimEnd().split("\n");
+  const onFailure = (row.efficacy_improvement || "Review signal efficacy and tighten policy.").trim();
+  return [
+    "vibe:",
+    `  intent: ${JSON.stringify(intent)}`,
+    `  priority: ${row.priority}`,
+    `  category: ${JSON.stringify(row.category || "general")}`,
+    `  profile: ${profile}`,
+    `  id: ${safeId}`,
+    "target:",
+    "  files:",
+    '    - "**/*"',
+    "  tenant_id: null",
+    "enforce: []",
+    "logic: |",
+    ...logicLines.map((line) => `  ${line}`),
+    `on_failure: ${JSON.stringify(onFailure)}`,
+    "",
+  ].join("\n");
 }
 
 function CircularKpi({ title, value, hint }: { title: string; value: string; hint: string }) {
@@ -283,7 +308,7 @@ export default function SignalIntelligencePage() {
 
     if (lower.includes("draft rego") || lower.includes("generate rego")) {
       const baseIntent = visibleRows[0]?.natural_language_intent || "Enforce dependency and safety checks on pull requests.";
-      const draft = `package agent.gate.policy\n\ndefault allow = true\n\nviolation[msg] {\n  input.context.intent == "${baseIntent.replace(/"/g, '\\"')}"\n  not input.context.has_policy_guardrail\n  msg := "Policy guardrail missing for declared intent"\n}`;
+      const draft = `package project.vail.policy\n\ndefault allow = true\n\nviolation[msg] {\n  input.context.intent == "${baseIntent.replace(/"/g, '\\"')}"\n  not input.context.has_policy_guardrail\n  msg := "Policy guardrail missing for declared intent"\n}`;
       pushCopilot("assistant", `Draft Rego logic based on current context:\n${draft}`);
       return;
     }
@@ -530,17 +555,31 @@ export default function SignalIntelligencePage() {
                             Clarify Intent
                           </button>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => setPromoted((cur) => ({ ...cur, [row.id]: !cur[row.id] }))}
-                            className={cls(
-                              "inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-white",
-                              isPromoted ? "bg-emerald-700 hover:bg-emerald-800" : "bg-hcl-blue hover:bg-[#0043ce]",
-                            )}
-                          >
-                            <ShieldCheck className="h-3.5 w-3.5" />
-                            {isPromoted ? "Deployed (mock)" : "Approve & Deploy"}
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const yaml = signalRowToVimlYaml(row, rawIntent);
+                                void navigator.clipboard.writeText(yaml).catch(() => {});
+                              }}
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                              title="Copy VIML envelope (YAML) for Project Vail Policy IDE or MCP viml argument"
+                            >
+                              <ClipboardCopy className="h-3.5 w-3.5" />
+                              Copy VIML
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPromoted((cur) => ({ ...cur, [row.id]: !cur[row.id] }))}
+                              className={cls(
+                                "inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-white",
+                                isPromoted ? "bg-emerald-700 hover:bg-emerald-800" : "bg-hcl-blue hover:bg-[#0043ce]",
+                              )}
+                            >
+                              <ShieldCheck className="h-3.5 w-3.5" />
+                              {isPromoted ? "Deployed (mock)" : "Approve & Deploy"}
+                            </button>
+                          </>
                         )}
                         <button
                           type="button"
@@ -618,7 +657,7 @@ export default function SignalIntelligencePage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold">Signal Agent</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">agent.gate conversational intelligence</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Project Vail conversational intelligence</p>
                 </div>
               </div>
               <button

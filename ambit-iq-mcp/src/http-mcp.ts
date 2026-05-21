@@ -2,6 +2,7 @@
  * Vercel serverless entry: Streamable HTTP MCP (one Server + Transport per request).
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
+import crypto from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { registerAmbitIqHandlers } from "./handlers.js";
@@ -19,6 +20,29 @@ function rejectUnauthorized(res: ServerResponse, message = "Unauthorized"): void
   res.end(JSON.stringify({ error: message }));
 }
 
+function constantTimeEqual(a: string, b: string): boolean {
+  const aa = Buffer.from(a, "utf8");
+  const bb = Buffer.from(b, "utf8");
+  if (aa.length !== bb.length) return false;
+  return crypto.timingSafeEqual(aa, bb);
+}
+
+function resolveAllowedOrigin(origin: string | undefined): string | null {
+  if (!origin) return null;
+  const allowList = String(process.env.MCP_CORS_ORIGINS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (allowList.includes(origin)) return origin;
+  if (process.env.NODE_ENV !== "production") {
+    // Local development convenience.
+    if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+      return origin;
+    }
+  }
+  return null;
+}
+
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
   const bodyUnknown = (req as IncomingMessage & { body?: unknown }).body;
   if (bodyUnknown != null && typeof bodyUnknown === "object" && !Buffer.isBuffer(bodyUnknown)) {
@@ -32,15 +56,26 @@ async function readJsonBody(req: IncomingMessage): Promise<unknown> {
     }
   }
   const chunks: Buffer[] = [];
+  let total = 0;
+  const maxBytes = Number(process.env.MCP_MAX_BODY_BYTES || 1_048_576); // 1 MiB default
   for await (const chunk of req) {
-    chunks.push(chunk as Buffer);
+    const buf = chunk as Buffer;
+    total += buf.length;
+    if (total > maxBytes) {
+      const err = new Error("Payload too large");
+      (err as Error & { statusCode?: number }).statusCode = 413;
+      throw err;
+    }
+    chunks.push(buf);
   }
   const raw = Buffer.concat(chunks).toString("utf8");
   if (!raw) return undefined;
   try {
     return JSON.parse(raw);
   } catch {
-    return undefined;
+    const err = new Error("Invalid JSON");
+    (err as Error & { statusCode?: number }).statusCode = 400;
+    throw err;
   }
 }
 
@@ -49,11 +84,10 @@ export default async function handler(
   res: ServerResponse,
 ): Promise<void> {
   const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
+  const allowedOrigin = resolveAllowedOrigin(origin);
+  if (allowedOrigin) {
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
     res.setHeader("Vary", "Origin");
-  } else {
-    res.setHeader("Access-Control-Allow-Origin", "*");
   }
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader(
@@ -90,7 +124,7 @@ export default async function handler(
       return;
     }
     const incomingToken = extractBearerToken(req);
-    if (!incomingToken || incomingToken !== expectedToken) {
+    if (!incomingToken || !constantTimeEqual(incomingToken, expectedToken)) {
       rejectUnauthorized(res, "Invalid or missing bearer token.");
       return;
     }
@@ -101,7 +135,7 @@ export default async function handler(
     }
 
     const server = new Server(
-      { name: "AgentGate", version: "2.0.0" },
+      { name: "Project Vail", version: "2.0.0" },
       { capabilities: { tools: {} } },
     );
     const auditStore = new AuditStore();
@@ -125,9 +159,16 @@ export default async function handler(
       res.destroy();
       return;
     }
-    res.statusCode = 500;
+    const statusCode =
+      typeof (err as { statusCode?: unknown })?.statusCode === "number"
+        ? Number((err as { statusCode?: number }).statusCode)
+        : 500;
+    res.statusCode = statusCode;
     res.setHeader("Content-Type", "application/json; charset=utf-8");
-    const message = err instanceof Error ? err.message : String(err);
-    res.end(JSON.stringify({ error: "MCP handler failed", message }));
+    const body =
+      process.env.NODE_ENV === "production"
+        ? { error: "MCP handler failed" }
+        : { error: "MCP handler failed", message: err instanceof Error ? err.message : String(err) };
+    res.end(JSON.stringify(body));
   }
 }

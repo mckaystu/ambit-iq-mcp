@@ -5,7 +5,7 @@ import { AuditStore } from "../lib/auditTrail.js";
 
 const server = new Server(
   {
-    name: "AgentGate",
+    name: "Project Vail",
     version: "2.0.0",
   },
   {

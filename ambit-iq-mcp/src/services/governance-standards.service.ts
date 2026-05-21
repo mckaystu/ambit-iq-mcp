@@ -97,7 +97,7 @@ export function ensureGovernanceStandardsClients(): Promise<GovernanceClients> {
   if (!clientsPromise) {
     clientsPromise = (async () => {
       const apiKey = requireEnv("PINECONE_API_KEY");
-      const indexName = process.env.PINECONE_INDEX_NAME?.trim() || "agent-gate-standards";
+      const indexName = process.env.PINECONE_INDEX_NAME?.trim() || "project-vail-standards";
       const pc = new Pinecone({ apiKey });
       const index = pc.index(indexName);
       return { index, indexName };

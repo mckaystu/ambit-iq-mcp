@@ -1,7 +1,11 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
+import { DASHBOARD_TOOLS } from "./handlers/dashboard.handlers.js";
+import { MODEL_GOVERNANCE_TOOLS } from "./handlers/model-governance.handlers.js";
+import { INCIDENT_TOOLS } from "./handlers/incident.handlers.js";
+import { INTERACTION_TOOLS } from "./handlers/interaction.handlers.js";
 
 /**
- * MCP tool list for agent.gate (kept separate from dispatch logic for readability).
+ * MCP tool list for Project Vail (kept separate from dispatch logic for readability).
  */
 export const AMBIT_MCP_TOOLS: Tool[] = [
   {
@@ -31,7 +35,7 @@ export const AMBIT_MCP_TOOLS: Tool[] = [
         certificateOutputPath: {
           type: "string",
           description:
-            "Optional file path for HTML output. Defaults to reports/agent-gate-certificate-<profile>.html",
+            "Optional file path for HTML output. Defaults to reports/project-vail-certificate-<profile>.html",
         },
         logAuditTrail: {
           type: "boolean",
@@ -68,6 +72,20 @@ export const AMBIT_MCP_TOOLS: Tool[] = [
           type: "string",
           description: "Optional domain filter (Security, Frontend, Database, etc).",
         },
+        viml: {
+          type: "string",
+          description:
+            "Optional VIML (YAML): vibe (intent, profile, …), target, enforce patterns, logic (Rego), on_failure. Enforce runs before catalog profile; vibe.profile overrides profileId.",
+        },
+        interaction_id: { type: "string" },
+        model: { type: "object", description: "Optional model metadata for governance assessment." },
+        team_id: { type: "string" },
+        repo: { type: "string" },
+        branch: { type: "string" },
+        commit_sha: { type: "string" },
+        pr_number: { type: "string" },
+        agent_name: { type: "string" },
+        agent_version: { type: "string" },
       },
       required: ["code"],
     },
@@ -131,7 +149,7 @@ export const AMBIT_MCP_TOOLS: Tool[] = [
   {
     name: "log_vibe_transaction",
     description:
-      "Phase 2 GRC: report agent thought process and proposed code. Evaluates policy (OPA REST if OPA_URL set, else agent.gate bridge), then persists a tamper-evident decision log (SHA-256 chain + RSA-SHA256 signature) when DATABASE_URL is set — requires AMBIT_SIGNING_KEY. The tool waits for the write to finish (required on serverless). Without DATABASE_URL, writes JSON fallback (.ambit/grc-fallback locally, /tmp/agent-gate-grc-fallback on Vercel). Each call also writes an HTML scan certificate and traceability logs when AuditStore is available; set metadata.project_id to also write a Bill of Intent markdown file from Postgres.",
+      "Phase 2 GRC: report agent thought process and proposed code. Evaluates policy (OPA REST if OPA_URL set, else Project Vail bridge), then persists a tamper-evident decision log (SHA-256 chain + RSA-SHA256 signature) when DATABASE_URL is set — requires AMBIT_SIGNING_KEY. The tool waits for the write to finish (required on serverless). Without DATABASE_URL, writes JSON fallback (.ambit/grc-fallback locally, /tmp/project-vail-grc-fallback on Vercel). Each call also writes an HTML scan certificate and traceability logs when AuditStore is available; set metadata.project_id to also write a Bill of Intent markdown file from Postgres.",
     inputSchema: {
       type: "object",
       properties: {
@@ -141,7 +159,7 @@ export const AMBIT_MCP_TOOLS: Tool[] = [
         proposed_code: { type: "string", description: "Generated or proposed source code." },
         profile_id: {
           type: "string",
-          description: "Policy profile for agent.gate bridge when OPA is not used.",
+          description: "Policy profile for Project Vail bridge when OPA is not used.",
         },
         metadata: {
           type: "object",
@@ -156,6 +174,27 @@ export const AMBIT_MCP_TOOLS: Tool[] = [
           description: "Optional opt-in compliance tags for rules_library filtering.",
         },
         domain_id: { type: "string", description: "Optional domain filter for rules_library." },
+        viml: {
+          type: "string",
+          description:
+            "Optional VIML (YAML) policy document. Fast-path enforce runs before OPA / Project Vail bridge; vibe.profile overrides profile_id.",
+        },
+        interaction_id: { type: "string" },
+        model: { type: "object", description: "Optional model metadata for governance and usage logging." },
+        team_id: { type: "string" },
+        repo: { type: "string" },
+        branch: { type: "string" },
+        commit_sha: { type: "string" },
+        pr_number: { type: "string" },
+        agent_name: { type: "string" },
+        agent_version: { type: "string" },
+        response: { type: "string" },
+        prompt: { type: "string" },
+        final_code: { type: "string" },
+        session_id: { type: "string" },
+        workspace_id: { type: "string" },
+        accepted: { type: "boolean" },
+        capture_policy: { type: "object" },
       },
       required: ["actor_id", "intent_prompt", "proposed_code"],
     },
@@ -200,7 +239,7 @@ export const AMBIT_MCP_TOOLS: Tool[] = [
   {
     name: "query_governance_standards",
     description:
-      "Semantic search over ingested governance standards in Pinecone (384-d MiniLM-compatible vectors). Embeddings use the Hugging Face Inference API (HUGGINGFACE_API_TOKEN) so the serverless bundle stays small. Returns top-3 text+source snippets. Requires PINECONE_API_KEY; optional PINECONE_INDEX_NAME (default agent-gate-standards), HF_EMBEDDING_MODEL_ID (default sentence-transformers/all-MiniLM-L6-v2). Logs to traceability when AuditStore is enabled.",
+      "Semantic search over ingested governance standards in Pinecone (384-d MiniLM-compatible vectors). Embeddings use the Hugging Face Inference API (HUGGINGFACE_API_TOKEN) so the serverless bundle stays small. Returns top-3 text+source snippets. Requires PINECONE_API_KEY; optional PINECONE_INDEX_NAME (default project-vail-standards), HF_EMBEDDING_MODEL_ID (default sentence-transformers/all-MiniLM-L6-v2). Logs to traceability when AuditStore is enabled.",
     inputSchema: {
       type: "object",
       properties: {
@@ -229,4 +268,8 @@ export const AMBIT_MCP_TOOLS: Tool[] = [
       required: ["query"],
     },
   },
+  ...DASHBOARD_TOOLS,
+  ...MODEL_GOVERNANCE_TOOLS,
+  ...INCIDENT_TOOLS,
+  ...INTERACTION_TOOLS,
 ];

@@ -1,6 +1,6 @@
-# agent-gate-mcp (agent.gate)
+# project-vail-mcp (Project Vail)
 
-Policy-style checks exposed as MCP tools, now with profile-based governance. The **agent.gate** name is used in the admin dashboard UI, certificates, and MCP-facing metadata.
+Policy-style checks exposed as MCP tools, now with profile-based governance. The **Project Vail** name is used in the admin dashboard UI, certificates, and MCP-facing metadata.
 
 ## Tools
 
@@ -33,6 +33,122 @@ Policy-style checks exposed as MCP tools, now with profile-based governance. The
   - `verify_audit_integrity`: Recompute hashes, validate the chain (`previous_hash` ↔ prior `log_hash`), and verify RSA signatures (`AMBIT_VERIFYING_KEY`). Returns **Clean**, **Tamper Alert**, or **Skipped** (no database).
 - `query_governance_standards`: Pinecone semantic search over ingested standards (top 3). Uses the **Hugging Face Inference API** for embeddings (`HUGGINGFACE_API_TOKEN`, optional `HF_EMBEDDING_MODEL_ID`) so **Vercel** stays under the serverless size limit — do not bundle `@huggingface/transformers` in this repo. Also needs `PINECONE_API_KEY` (and optional `PINECONE_INDEX_NAME`).
 
+## Phase 2 Governance Tooling
+
+New MCP tools are now modularized under `src/handlers/`:
+
+- Executive dashboard: `get_executive_dashboard`, `get_ai_usage_by_team`, `get_blocked_risky_commits`, `get_compliance_score_trend`, `get_top_violating_repos`, `get_model_usage_by_geography`, `get_audit_readiness_score`
+- Model governance: `assess_model_risk`, `get_model_governance_summary`, `validate_model_for_context`
+- Incident response: `create_incident`, `add_incident_event`, `search_incidents`, `get_incident_timeline`
+- Agent interactions: `capture_agent_interaction`, `get_agent_interaction`, `search_agent_interactions`
+
+Example MCP calls:
+
+```json
+{"name":"get_executive_dashboard","arguments":{"date_from":"2026-04-01","date_to":"2026-04-25","team_id":"platform"}}
+```
+
+```json
+{"name":"assess_model_risk","arguments":{"model":{"provider":"openai","modelName":"gpt-5.4","hostingType":"external_saas","trainingUsageAllowed":false}}}
+```
+
+```json
+{"name":"capture_agent_interaction","arguments":{"trace_id":"0f4f0d5d-1e24-4f8a-b49f-8245d61f7a32","agent_name":"cursor-agent","prompt":"...","response":"..."}} 
+```
+
+```json
+{"name":"get_incident_timeline","arguments":{"incident_id":"3d426e86-5372-4dc7-a569-b4c549a6e082"}}
+```
+
+New dashboard API endpoints (`dashboard/api/`):
+
+- `executive-dashboard.js` (`GET`)
+- `model-governance.js` (`GET`, `POST` with `action=assess_risk|validate_context`)
+- `incidents.js` (`GET`, `POST` for incident create/event add)
+- `agent-interactions.js` (`GET`, `POST`)
+
+Backwards compatibility notes:
+
+- `audit_vibe` and `log_vibe_transaction` continue to work without Phase 2 fields.
+- New optional metadata fields (`interaction_id`, model metadata, repo/team/agent references) are accepted without changing existing required inputs.
+- Interaction/model capture failures are returned as warnings; transaction logging still completes.
+
+## Phase 4 Enterprise Readiness
+
+Enterprise additions are additive and backward compatible.
+
+### Auth modes and RBAC
+
+Dashboard APIs support auth modes via `dashboard/api/_auth.js`:
+
+- `AMBIT_AUTH_MODE=off` (legacy/dev behavior)
+- `AMBIT_AUTH_MODE=local` (single dev user)
+- `AMBIT_AUTH_MODE=jwt` (HS256 bearer token verification)
+
+Environment:
+
+- `AMBIT_AUTH_MODE=off|local|jwt`
+- `AMBIT_JWT_SECRET=...`
+- `AMBIT_DEV_USER_EMAIL=admin@example.com`
+- `AMBIT_DEV_USER_ROLE=admin`
+- `AMBIT_DEV_TENANT_ID=<optional-uuid>`
+
+### Tenant model
+
+Additive schema/migration adds:
+
+- `Tenant` model (`tenants` table)
+- optional `tenant_id` on key governance tables (`ambit_decision_logs`, `agent_interactions`, `model_usage`, `incidents`, `dashboard_metric_snapshots`)
+
+Tenant helper functions are in `src/services/tenant.service.ts`.
+
+### Alerts
+
+Alert APIs:
+
+- `GET/POST /api/alerts`
+
+Environment:
+
+- `AMBIT_SLACK_WEBHOOK_URL`
+- `AMBIT_ALERT_EMAIL_WEBHOOK`
+- `AMBIT_ALERT_MIN_SEVERITY=high`
+
+### Replay
+
+Replay API:
+
+- `GET /api/replay?interaction_id=...`
+- `GET /api/replay?incident_id=...`
+
+Replay UI route:
+
+- `/dashboard/replay`
+
+### Export
+
+Export API:
+
+- `POST /api/export` with `format=csv|json|html` and `type`
+
+### Operational hardening
+
+Shared API security helper in `dashboard/api/_security.js`:
+
+- rate limiting (`withRateLimit`)
+- security headers (`applySecurityHeaders`)
+- bounded JSON parsing (`safeJson`)
+
+Admin actions are logged through `dashboard/api/_admin-audit.js`.
+
+### Production deployment checklist
+
+1. Configure `DATABASE_URL`.
+2. Apply migrations through `005_phase4_enterprise_foundations.sql`.
+3. Set auth mode (`AMBIT_AUTH_MODE`) and JWT secret for production (`AMBIT_JWT_SECRET`).
+4. Configure optional alert webhooks.
+5. Verify role permissions for export/policy/replay actions.
+
 ## Shared Rules Library (Neon/Postgres)
 
 Ambit can now load policy rules from a shared `rules_library` table (fallback to embedded defaults if DB is unavailable/empty). This enables tenant/industry/tag/domain-aware rule activation without rebuilding the MCP server.
@@ -54,6 +170,16 @@ Use context filters in tool calls:
 - `audit_vibe`: `tenantId`, `industryId`, `complianceTags`, `domainId`
 - `list_vibe_rules`: same filters
 - `log_vibe_transaction`: `tenant_id`, `industry_id`, `compliance_tags`, `domain_id` (or via `metadata`)
+
+### VIML (YAML envelope) and OPA
+
+- **Fields:** VIML documents use YAML with at least `vibe.intent`, optional `vibe.profile`, `enforce[]` (regex patterns evaluated with the same fast-path as the MCP), optional `logic` (embedded Rego), and `on_failure`. See `examples/agent-gate/sample.viml` and `src/viml/viml.schema.ts`.
+- **MCP:** Pass optional **`viml`** (full YAML string) on **`audit_vibe`** and **`log_vibe_transaction`** so `vibe.intent` and enforce hits align with persisted metadata and audit payloads.
+- **OPA:** When **`OPA_URL`** is set and VIML carries non-empty **`logic`**, the server sends **`viml_wrapped_rego`** (and metadata) on the OPA input. Your OPA bundle must load or compile that Rego (wrapped under `package agent.gate.<id>` when the snippet has no `package` line). If OPA ignores `viml_wrapped_rego`, deep evaluation falls back to bridge-only behavior after the enforce fast-path.
+
+**Policy IDE (dashboard):** VIML is POSTed with generate, deploy, impact, and **`viml-preview`** uses the same parser as production. Deploy merges **`viml_document`** into **`rules_library.rule_logic`** JSON for Neon round-trip.
+
+**Export / SQL:** `npm run db:export:viml` prints YAML per rule. To generate `UPDATE` statements that set `rule_logic.viml_document`, run `npm run db:export:viml -- --emit-sql` (or `EMIT_SQL=1`); review the file before applying against your database.
 
 ## Database (Phase 2)
 
@@ -79,6 +205,14 @@ FROM ambit_decision_logs
 ORDER BY timestamp DESC
 LIMIT 5;
 ```
+
+## Automated tests
+
+```bash
+npm test
+```
+
+This runs Node’s test runner on `lib/**/*.test.{js,mjs}` (policy regex helpers, VIML shadow-impact resolution, Policy IDE action helpers, SQL export helpers), compiles `src/**/*.test.ts` into `dist-test/` (VIML parser fixtures, `evaluatePolicy` + `viml_policy`, Rego wrapper, snapshot truncation), then runs **Vitest** in `dashboard/` (Policy Manager API payload builders + basic UI checks for VIML validate).
 
 ## Local (stdio, Cursor)
 

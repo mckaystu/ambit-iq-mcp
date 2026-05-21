@@ -1,4 +1,6 @@
 import { getPool } from "./_pool.js";
+import { requireAuth } from "./_auth.js";
+import { withRateLimit } from "./_security.js";
 
 function requireEnv(name) {
   const value = String(process.env[name] || "").trim();
@@ -14,7 +16,7 @@ function githubHeaders(extra = {}) {
   return {
     Authorization: `Bearer ${requireEnv("GITHUB_TOKEN")}`,
     Accept: "application/vnd.github+json",
-    "User-Agent": "agent-gate-pr-rejection-runner",
+    "User-Agent": "project-vail-pr-rejection-runner",
     ...extra,
   };
 }
@@ -343,7 +345,7 @@ async function listCandidatePullsBySearch(searchQuery, maxResults) {
     .filter((entry) => entry.discussionComments.some((c) => c.body.length > 10));
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   // Optional auth for manual triggering.
   const authTokenExpected = optionalEnv("TOP_PR_REJECTIONS_AUTH_TOKEN", "");
   if (authTokenExpected) {
@@ -367,6 +369,15 @@ export default async function handler(req, res) {
     res.statusCode = 405;
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.end(JSON.stringify({ error: "Method not allowed" }));
+    return;
+  }
+
+  try {
+    requireAuth(req);
+  } catch (e) {
+    res.statusCode = Number(e?.statusCode || 401);
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.end(JSON.stringify({ ok: false, error: String(e?.message || e) }));
     return;
   }
 
@@ -533,4 +544,6 @@ export default async function handler(req, res) {
     res.end(JSON.stringify({ ok: false, error: String(e?.message || e) }, null, 2));
   }
 }
+
+export default withRateLimit(handler, { max: 20, windowMs: 60_000 });
 

@@ -20,6 +20,7 @@ model AmbitDecisionLog {
   violations    Json     @default("[]") @db.JsonB
   rawOpaPayload Json     @map("raw_opa_payload") @default("{}") @db.JsonB
   metadata      Json     @default("{}") @db.JsonB
+  tenantId      String?  @map("tenant_id") @db.Uuid
 
   /// Previous row fingerprint (CHAIN_GENESIS for first row); equals prior row’s log_hash.
   previousHash String? @map("previous_hash")
@@ -30,5 +31,155 @@ model AmbitDecisionLog {
 
   @@index([timestamp(sort: Desc)], map: "idx_ambit_decision_logs_timestamp")
   @@index([actorId], map: "idx_ambit_decision_logs_actor")
+  @@index([tenantId], map: "idx_ambit_decision_logs_tenant_id")
   @@map("ambit_decision_logs")
+}
+
+model Tenant {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
+  name      String
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([slug], map: "idx_tenants_slug")
+  @@index([status], map: "idx_tenants_status")
+  @@map("tenants")
+}
+
+model AgentInteraction {
+  id                    String   @id @default(uuid()) @db.Uuid
+  traceId               String   @map("trace_id") @db.Uuid
+  decisionLogId         String?  @map("decision_log_id") @db.Uuid
+  sessionId             String?  @map("session_id")
+  actorId               String?  @map("actor_id")
+  teamId                String?  @map("team_id")
+  agentName             String   @map("agent_name")
+  agentVersion          String?  @map("agent_version")
+  workspaceId           String?  @map("workspace_id")
+  repo                  String?
+  branch                String?
+  commitSha             String?  @map("commit_sha")
+  prNumber              String?  @map("pr_number")
+  promptCaptured        Boolean  @default(false) @map("prompt_captured")
+  promptRedacted        String?  @map("prompt_redacted")
+  promptHash            String?  @map("prompt_hash")
+  promptCharCount       Int?     @map("prompt_char_count")
+  promptTruncated       Boolean  @default(false) @map("prompt_truncated")
+  responseCaptured      Boolean  @default(false) @map("response_captured")
+  responseRedacted      String?  @map("response_redacted")
+  responseHash          String?  @map("response_hash")
+  responseCharCount     Int?     @map("response_char_count")
+  responseTruncated     Boolean  @default(false) @map("response_truncated")
+  proposedCodeRedacted  String?  @map("proposed_code_redacted")
+  finalCodeRedacted     String?  @map("final_code_redacted")
+  codeHash              String?  @map("code_hash")
+  accepted              Boolean?
+  capturePolicy         Json     @default("{}") @map("capture_policy") @db.JsonB
+  metadata              Json     @default("{}") @db.JsonB
+  tenantId              String?  @map("tenant_id") @db.Uuid
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([traceId], map: "idx_agent_interactions_trace_id")
+  @@index([actorId], map: "idx_agent_interactions_actor_id")
+  @@index([repo], map: "idx_agent_interactions_repo")
+  @@index([createdAt(sort: Desc)], map: "idx_agent_interactions_created_at")
+  @@index([tenantId], map: "idx_agent_interactions_tenant_id")
+  @@map("agent_interactions")
+}
+
+model ModelUsage {
+  id                            String   @id @default(uuid()) @db.Uuid
+  traceId                       String   @map("trace_id") @db.Uuid
+  decisionLogId                 String?  @map("decision_log_id") @db.Uuid
+  interactionId                 String?  @map("interaction_id") @db.Uuid
+  provider                      String
+  modelName                     String   @map("model_name")
+  modelVersion                  String?  @map("model_version")
+  hostingType                   String?  @map("hosting_type")
+  endpointRegion                String?  @map("endpoint_region")
+  dataProcessingRegion          String?  @map("data_processing_region")
+  userGeography                 String?  @map("user_geography")
+  jurisdiction                  String?
+  promptRetentionPolicy         String?  @map("prompt_retention_policy")
+  responseRetentionPolicy       String?  @map("response_retention_policy")
+  trainingUsageAllowed          Boolean? @map("training_usage_allowed")
+  trainingExposureRisk          String?  @map("training_exposure_risk")
+  dataClassification            String?  @map("data_classification")
+  approvedForSensitiveCode      Boolean? @map("approved_for_sensitive_code")
+  approvedForRegulatedWorkloads Boolean? @map("approved_for_regulated_workloads")
+  modelPolicyVersion            String?  @map("model_policy_version")
+  metadata                      Json     @default("{}") @db.JsonB
+  tenantId                      String?  @map("tenant_id") @db.Uuid
+  createdAt                     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([traceId], map: "idx_model_usage_trace_id")
+  @@index([provider], map: "idx_model_usage_provider")
+  @@index([modelName], map: "idx_model_usage_model_name")
+  @@index([jurisdiction], map: "idx_model_usage_jurisdiction")
+  @@index([createdAt(sort: Desc)], map: "idx_model_usage_created_at")
+  @@index([tenantId], map: "idx_model_usage_tenant_id")
+  @@map("model_usage")
+}
+
+model Incident {
+  id         String   @id @default(uuid()) @db.Uuid
+  title      String
+  description String?
+  severity   String
+  status     String   @default("open")
+  traceId    String?  @map("trace_id") @db.Uuid
+  repo       String?
+  actorId    String?  @map("actor_id")
+  teamId     String?  @map("team_id")
+  firstSeenAt DateTime @default(now()) @map("first_seen_at") @db.Timestamptz(6)
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  metadata   Json     @default("{}") @db.JsonB
+  tenantId   String?  @map("tenant_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([severity], map: "idx_incidents_severity")
+  @@index([status], map: "idx_incidents_status")
+  @@index([repo], map: "idx_incidents_repo")
+  @@index([createdAt(sort: Desc)], map: "idx_incidents_created_at")
+  @@index([tenantId], map: "idx_incidents_tenant_id")
+  @@map("incidents")
+}
+
+model IncidentEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  incidentId String  @map("incident_id") @db.Uuid
+  traceId   String?  @map("trace_id") @db.Uuid
+  timestamp DateTime @default(now()) @db.Timestamptz(6)
+  eventType String   @map("event_type")
+  actorId   String?  @map("actor_id")
+  repo      String?
+  commitSha String?  @map("commit_sha")
+  prNumber  String?  @map("pr_number")
+  payload   Json     @default("{}") @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([incidentId], map: "idx_incident_events_incident_id")
+  @@index([timestamp(sort: Desc)], map: "idx_incident_events_timestamp")
+  @@map("incident_events")
+}
+
+model DashboardMetricSnapshot {
+  id         String   @id @default(uuid()) @db.Uuid
+  metricName String   @map("metric_name")
+  dimensions Json     @default("{}") @db.JsonB
+  value      Json     @default("{}") @db.JsonB
+  tenantId   String?  @map("tenant_id") @db.Uuid
+  periodStart DateTime @map("period_start") @db.Timestamptz(6)
+  periodEnd   DateTime @map("period_end") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([metricName], map: "idx_dashboard_metric_snapshots_metric_name")
+  @@index([periodStart], map: "idx_dashboard_metric_snapshots_period_start")
+  @@index([periodEnd], map: "idx_dashboard_metric_snapshots_period_end")
+  @@index([tenantId], map: "idx_dashboard_metric_snapshots_tenant_id")
+  @@map("dashboard_metric_snapshots")
 }

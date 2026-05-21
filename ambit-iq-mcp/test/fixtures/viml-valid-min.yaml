@@ -1,0 +1,6 @@
+vibe:
+  intent: Fixture minimal valid document
+  profile: baseline.global
+enforce: []
+logic: ""
+on_failure: Policy violation.

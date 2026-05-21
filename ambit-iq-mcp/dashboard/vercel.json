@@ -3,9 +3,18 @@
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "functions": {
+    "api/*.js": {
+      "includeFiles": "../lib/**"
+    }
+  },
   "rewrites": [
     {
-      "source": "/((?!api/).*)",
+      "source": "/dashboard",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/dashboard/(.*)",
       "destination": "/index.html"
     }
   ]

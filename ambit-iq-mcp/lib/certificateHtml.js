@@ -18,7 +18,7 @@ export function buildAuditCertificateHtml({
   result,
   appName = "Unnamed Application",
   targetEnvironment = "unspecified",
-  scannerName = "agent.gate",
+  scannerName = "Project Vail",
 }) {
   const rows =
     result.findings.length === 0

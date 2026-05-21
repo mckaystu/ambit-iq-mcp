@@ -1,5 +1,5 @@
 {
-  "name": "agent-gate-mcp",
+  "name": "project-vail-mcp",
   "version": "1.0.0",
   "description": "",
   "imports": {
@@ -11,13 +11,15 @@
     "build": "prisma generate && rm -rf dist && tsc && node scripts/ensure-public-output.mjs",
     "start": "node dist/stdio-mcp.js",
     "dev": "tsx src/stdio-mcp.ts",
-    "test": "node --test lib/networkCallRules.test.js",
+    "test": "node --test lib/networkCallRules.test.js lib/vimlShadowImpact.test.mjs lib/agentGateRegexComment.test.mjs lib/shadowImpactResolve.test.mjs lib/vimlPolicyIdeActions.test.mjs lib/rulesLibraryVimlSql.test.mjs && tsc -p tsconfig.tests.json && node --test dist-test/viml/viml.rego.test.js dist-test/viml/viml.parser.fixture.test.js dist-test/viml/evaluatePolicy.viml.integration.test.js dist-test/viml/viml.snapshot.test.js && npm --prefix dashboard test",
     "postinstall": "prisma generate",
     "smoke:mcp": "node scripts/mcp-ci-smoke.mjs",
     "db:migrate:sql": "echo \"Apply migrations/001_ambit_decision_logs.sql to your Neon DB\"",
     "db:seed:rules-library": "node scripts/seed-rules-library.mjs",
+    "db:export:viml": "node scripts/migrate-rules-to-viml-envelope.mjs",
     "dashboard:dev": "npm --prefix dashboard run dev",
-    "dashboard:build": "npm --prefix dashboard run build"
+    "dashboard:build": "npm --prefix dashboard run build",
+    "test:phase1": "vitest run src/services/dashboard.service.test.ts src/services/model-governance.service.test.ts src/services/prompt-capture.service.test.ts src/services/incident-response.service.test.ts"
   },
   "engines": {
     "node": ">=20"
@@ -33,12 +35,14 @@
     "@pinecone-database/pinecone": "^5.1.2",
     "@prisma/client": "^6.19.0",
     "@vercel/blob": "^2.3.3",
+    "yaml": "^2.8.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "prisma": "^6.19.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
   }
 }

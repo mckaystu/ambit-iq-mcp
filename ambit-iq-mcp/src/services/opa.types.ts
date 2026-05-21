@@ -7,6 +7,11 @@ export interface OpaEvaluationInput {
   code: string;
   intent_prompt: string;
   profile_id?: string;
+  /**
+   * Optional VIML (YAML): vibe / target / enforce / logic / on_failure.
+   * Enforce patterns run first; vibe.profile overrides profile_id for catalog scans.
+   */
+  viml_policy?: string;
 }
 
 /** Typical custom decision document returned by Rego (adjust to your bundle). */
@@ -33,5 +38,5 @@ export interface OpaEvaluationResult {
   violations: OpaViolation[];
   /** Full HTTP JSON body or synthetic bridge payload (masked before DB write). */
   raw: unknown;
-  source: "opa_rest" | "agent_gate_bridge";
+  source: "opa_rest" | "agent_gate_bridge" | "viml_enforce";
 }

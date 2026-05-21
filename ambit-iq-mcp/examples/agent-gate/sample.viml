@@ -1,0 +1,26 @@
+# agent.gate — VIML (Vibe Intent Markup Language) sample
+# YAML: vibe / target / enforce (fast-path) / logic (Rego, deep-path) / on_failure
+
+vibe:
+  intent: "Block obvious client-side secret env reads in application source."
+  priority: HIGH
+  category: security
+  profile: baseline.global
+  id: demo_secret_env
+
+target:
+  files:
+    - "src/**/*.{ts,tsx,js,jsx}"
+  tenant_id: null
+
+enforce:
+  - id: ENV_SECRET_READ
+    pattern: "process\\.env\\.(SECRET|KEY|TOKEN|PASSWORD)"
+    message: "Detected process.env read that looks like a secret accessor."
+    severity: high
+
+logic: |
+  # Embedded Rego (optional). When OPA_URL is set, this is sent as input.viml_wrapped_rego under package agent.gate.<id>.
+  default allow := true
+
+on_failure: "Remove or gate secret reads; use server-side configuration or a build-time allowlist instead."

@@ -1,4 +1,6 @@
 import { getPool } from "./_pool.js";
+import { requireAuth } from "./_auth.js";
+import { withRateLimit } from "./_security.js";
 
 function corsHeaders() {
   return {
@@ -32,7 +34,7 @@ function normalizeSeverity(v) {
   return "WARNING";
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
     Object.entries(corsHeaders()).forEach(([k, v]) => res.setHeader(k, v));
@@ -47,6 +49,7 @@ export default async function handler(req, res) {
   const range = parseRange(Object.fromEntries(url.searchParams.entries()));
 
   try {
+    requireAuth(req);
     const pool = getPool();
 
     const trendRows = await pool.query(
@@ -225,3 +228,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default withRateLimit(handler);
